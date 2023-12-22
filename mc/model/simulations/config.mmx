@@ -1,0 +1,19 @@
+{
+"configFile": "./config.mmx",
+"endDate": null,
+"epsg": null,
+"lrx": null,
+"lry": null,
+"numProcesses": 10,
+"numTrials": 10,
+"inputDirectory": ".",
+"outputDirectory": ".",
+"phase": "configure",
+"presenceFile": null,
+"species": "species",
+"startDate": null,
+"state": "Pending",
+"topTen": null,
+"ulx": null,
+"uly": null
+}
