@@ -3,8 +3,8 @@ import time
 import logging
 import argparse
 from datetime import date
-from mypackage.model.common import valid_date
-from mypackage.model.pipelines.mypackage_pipeline import MyPackagePipeline
+from mc.model.common import valid_date
+from mc.model.pipelines.mypackage_pipeline import MyPackagePipeline
 
 
 # -----------------------------------------------------------------------------

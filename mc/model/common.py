@@ -2,7 +2,7 @@ import sys
 import argparse
 import omegaconf
 from datetime import datetime
-from mypackage.model.config import Config
+from mc.model.config import Config
 
 
 # -------------------------------------------------------------------------
