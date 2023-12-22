@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
 from mc.model.monte_carlo_factories.MpfMonteCarloFactory import MpfMonteCarloFactory
-from MpfApplication import MpfApplication
-from MpfConfig import MpfConfig
+from mc.model.simulations.mpf.MpfApplication import MpfApplication
+from mc.model.config.MpfConfig import MpfConfig
 
 
 # -------------------------------------------------------------------------------

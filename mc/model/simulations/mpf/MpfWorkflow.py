@@ -223,7 +223,7 @@ class MpfWorkflow(object):
             if model_type == "XGBoost":
                 model_factory.summary(model)
 
-    def _get_shap_values(self, model, test_generator, X):
+    def _get_shap_values21(self, model, test_generator, X):
 
         keyword = self.keywordAll
         import shap
@@ -235,10 +235,22 @@ class MpfWorkflow(object):
         self.mpfConfig.shap_values21_0to50 = self.mpfConfig.explainer21.shap_values(X.iloc[0:50, :], nsamples=500)
         shap.summary_plot(self.mpfConfig.shap_values21_0to50[0], X.iloc[0:50, :], plot_type="bar", feature_names=self.keywordAll)
 
-    def _get_shap_values2(self, model, test_generator, X):
+    def _get_shap_values(self, model, test_generator, X):
 
 
-        keyword = self.keywordAll
+        keyword = self.keyword7
+ #       keyword = self.keywordAll
+        import shap
+        self.mpfConfig.explainer = shap.KernelExplainer(model.predict, X.iloc[:50, :])
+        self.mpfConfig.shap_values0to50 = self.mpfConfig.explainer.shap_values(X.iloc[0:50, :], nsamples=500)
+        shap.summary_plot(self.mpfConfig.shap_values0to50[0], X.iloc[0:50, :], plot_type="bar", feature_names=keyword)
+        shap.summary_plot(self.mpfConfig.shap_values0to50, X, plot_type="bar", feature_names=keyword)
+
+    def _get_shap_valuesExact(self, model, test_generator, X):
+
+        keyword = self.keyword7
+
+#        keyword = self.keywordAll
         import shap
         # explain the model's predictions using SHAP
         # (same syntax works for LightGBM, CatBoost, scikit-learn and spark models)
