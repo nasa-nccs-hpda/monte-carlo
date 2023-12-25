@@ -20,7 +20,7 @@ class MpfMonteCarloFactory(MonteCarloFactory):
             mpfConfig.mlflow_config = parms["mlflow"]
 
         # Override config file values
-        if (mpfConfig.outDir != None):
+        if (mpfConfig.outDir != None) and (mpfConfig.outDir != '.'):
             mpfConfig.mlflow_config['TRACKING_URI'] = mpfConfig.outDir
         if (mpfConfig.experimentName != None):
             mpfConfig.mlflow_config['EXPERIMENT_NAME'] = mpfConfig.experimentName

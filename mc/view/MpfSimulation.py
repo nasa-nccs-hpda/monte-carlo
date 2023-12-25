@@ -10,8 +10,8 @@ from mc.model.simulations.mpf.configureMpfRun import ConfigureMpfRun
 # -------------------------------------------------------------------------------
 # main
 #
-# ./mpf.py --config
-# /panfs/ccds02/home/gtamkin/dev/AGB/mpf-model-factories/MultiPathFusion/multi_path_fusion/config/config_gt_1model_all21bands.json
+# ./MpfSimulation.py --config
+# /panfs/ccds02/home/gtamkin/dev/AGB/mpf-model-factories/MultiPathFusion/multi_path_fusion/config/exp_all21bands.json
 # --bandList
 # "1, 2, 3, 4, 5, 6, 7 ,8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21"
 # -dp
