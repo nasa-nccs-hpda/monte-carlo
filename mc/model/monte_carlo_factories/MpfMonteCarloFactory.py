@@ -22,26 +22,40 @@ class MpfMonteCarloFactory(MonteCarloFactory):
         # Override config file values
         if (mpfConfig.outDir != None) and (mpfConfig.outDir != '.'):
             mpfConfig.mlflow_config['TRACKING_URI'] = mpfConfig.outDir
+        mpfConfig.tracking_uri = mpfConfig.mlflow_config['TRACKING_URI']
+
         if (mpfConfig.experimentName != None):
             mpfConfig.mlflow_config['EXPERIMENT_NAME'] = mpfConfig.experimentName
+        mpfConfig.experimentName = mpfConfig.mlflow_config['EXPERIMENT_NAME']
 
         if (mpfConfig.hyperspectralFilePath):
             mpfConfig.data_generator_config['branch_inputs'][0]['branch_files'][0]['mlbs_year_filepath'] = \
                 mpfConfig.hyperspectralFilePath
-
+        else:
+            mpfConfig.hyperspectralFilePath = \
+                mpfConfig.data_generator_config['branch_inputs'][0]['branch_files'][0]['mlbs_year_filepath']
+    
         if (mpfConfig.bandList):
             mpfConfig.data_generator_config['branch_inputs'][0]['branch_files'][0]['bands'] = \
                 mpfConfig.bandList
+        else:
+            mpfConfig.bandList = \
+                mpfConfig.data_generator_config['branch_inputs'][0]['branch_files'][0]['bands']
         #TODO consider overriding band_nums in data_generator_config
 
         if (mpfConfig.truthFileA):
                 mpfConfig.data_generator_config['truth_file_a'] = \
                     mpfConfig.truthFileA
+        else:
+            mpfConfig.truthFileA = mpfConfig.data_generator_config['truth_file_a']
+
         #TODO consider overriding truth_file_a in data_generator_config
 
         if (mpfConfig.truthFileB):
                 mpfConfig.data_generator_config['truth_file_b'] = \
                     mpfConfig.truthFileB
+        else:
+            mpfConfig.truthFileB = mpfConfig.data_generator_config['truth_file_b']
         #TODO consider overriding truth_file_b in data_generator_config
 
         mpfConfig.mlflow_config = setup_mlflow(mpfConfig.mlflow_config)

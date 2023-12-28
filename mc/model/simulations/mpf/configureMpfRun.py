@@ -32,6 +32,19 @@ class ConfigureMpfRun(MpfApplication):
 
         MpfMonteCarloFactory(mpfConfig, self.logger)
 
+        # Save the initial configuration object
+        import os, pickle
+        if not os.path.exists(mpfConfig.cfgDir):
+            os.mkdir(mpfConfig.cfgDir)
+
+        mpfConfig.cfg_path = \
+            os.path.join(mpfConfig.cfgDir, mpfConfig.model_name + '.cfg')
+        if (not os.path.exists(mpfConfig.cfg_path)):
+
+            self.logger.info('\nSaving initial configuration: ' + mpfConfig.cfg_path)
+            pickle.dump(mpfConfig,
+                        open(mpfConfig.cfg_path, "wb"))
+
     # ---------------------------------------------------------------------------
     # getPhase
     # ---------------------------------------------------------------------------

@@ -9,6 +9,11 @@ from multi_path_fusion.src.utils.model_helpers import get_model_factory
 
 from multi_path_fusion.src.training.train import train
 
+from mc.model.config.MpfConfig import MpfConfig
+
+import pickle
+import shap
+
 class MpfWorkflow(object):
 
     # ---------------------------------------------------------------------------
@@ -149,6 +154,7 @@ class MpfWorkflow(object):
             model = self.mpfConfig.model_factory.compile_model(model, self.mpfConfig.model_config)
 
             model.save(self.mpfConfig.model_path)
+            self.model_path = self.mpfConfig.model_path
 
         else:
 
@@ -167,6 +173,16 @@ class MpfWorkflow(object):
         self.mpfConfig.train_generator = load_data_generator(self.mpfConfig.data_generator_config, 'train')
         self.mpfConfig.validate_generator = load_data_generator(self.mpfConfig.data_generator_config, 'validate')
         self.mpfConfig.test_generator = load_data_generator(self.mpfConfig.data_generator_config, 'test')
+
+        if not os.path.exists(self.mpfConfig.trialsDir):
+            os.mkdir(self.mpfConfig.trialsDir)
+
+        # self.mpfConfig.trial_path = os.path.join(self.mpfConfig.trialsDir, self.mpfConfig.model_name + '.test_generator.data')
+        # if (not os.path.exists(self.mpfConfig.trial_path)):
+        #
+        #     self.logger.info('\nSaving test data: ' + self.mpfConfig.trial_path)
+        #     pickle.dump(self.mpfConfig.test_generator,
+        #                 open(self.mpfConfig.trial_path, "wb"))
 
         return self.mpfConfig
 
@@ -209,8 +225,6 @@ class MpfWorkflow(object):
                 model_factory.summary(model)
             self.mpfConfig.history = \
                 model_factory.train_model(model, train_generator, validate_generator, model_config)
-#            self.mpfConfig.history2 = \
-#                model_factory.train_model(model, train_generator, validate_generator, model_config)
 
             t1 = time.time()
             total_time = t1 - t0
@@ -223,60 +237,57 @@ class MpfWorkflow(object):
             if model_type == "XGBoost":
                 model_factory.summary(model)
 
-    def _get_shap_values21(self, model, test_generator, X):
+#            self.mpfConfig.predictions = model_factory.predict(model, test_generator)
+            self.mpfConfig.test_results = model_factory.evaluate(model, test_generator)
 
-        keyword = self.keywordAll
-        import shap
-        # explain the model's predictions using SHAP
-        # (same syntax works for LightGBM, CatBoost, scikit-learn and spark models)
+            # debugging
+#            print(f'predictions: {self.mpfConfig.predictions}')
+            print(f'test results: {self.mpfConfig.test_results}')
 
-        model21 = model
-        self.mpfConfig.explainer21 = shap.KernelExplainer(model21.predict, X.iloc[:50, :])
-        self.mpfConfig.shap_values21_0to50 = self.mpfConfig.explainer21.shap_values(X.iloc[0:50, :], nsamples=500)
-        shap.summary_plot(self.mpfConfig.shap_values21_0to50[0], X.iloc[0:50, :], plot_type="bar", feature_names=self.keywordAll)
+            #        model_factory.log_metrics(test_results)
+            #        model_factory.plot_metrics(model, test_generator, history)
+
+            # debugging
+            print("Finished evaluation successfully")
+
+            # save shap values
+            if not os.path.exists(self.mpfConfig.modelDir):
+                os.mkdir(self.mpfConfig.modelDir)
+
+            self.mpfConfig.evaluation_path = os.path.join(self.mpfConfig.modelDir,
+                                                          self.mpfConfig.model_name + '.test_results')
+            if (not os.path.exists(self.mpfConfig.evaluation_path)):
+
+                self.logger.info('\nSaving evaluation test results: ' + self.mpfConfig.evaluation_path)
+                pickle.dump(self.mpfConfig.test_results,
+                            open(self.mpfConfig.evaluation_path, "wb"))
+
 
     def _get_shap_values(self, model, test_generator, X):
 
-
-        keyword = self.keyword7
- #       keyword = self.keywordAll
-        import shap
         self.mpfConfig.explainer = shap.KernelExplainer(model.predict, X.iloc[:50, :])
         self.mpfConfig.shap_values0to50 = self.mpfConfig.explainer.shap_values(X.iloc[0:50, :], nsamples=500)
-        shap.summary_plot(self.mpfConfig.shap_values0to50[0], X.iloc[0:50, :], plot_type="bar", feature_names=keyword)
-        shap.summary_plot(self.mpfConfig.shap_values0to50, X, plot_type="bar", feature_names=keyword)
 
-    def _get_shap_valuesExact(self, model, test_generator, X):
+        # save shap values
+        if not os.path.exists(self.mpfConfig.permutationImportanceDir):
+            os.mkdir(self.mpfConfig.permutationImportanceDir)
 
-        keyword = self.keyword7
+        self.mpfConfig.shap_path = \
+            os.path.join(self.mpfConfig.permutationImportanceDir, self.mpfConfig.model_name + '.shap_values0to50')
 
-#        keyword = self.keywordAll
-        import shap
-        # explain the model's predictions using SHAP
-        # (same syntax works for LightGBM, CatBoost, scikit-learn and spark models)
+        self.mpfConfig.explainer_path = \
+            os.path.join(self.mpfConfig.permutationImportanceDir, self.mpfConfig.model_name + '.explainer_values0to50')
 
-        self.mpfConfig.exact_explainerAll  = shap.Explainer(model.predict, X)
-        self.mpfConfig.exact_explainer.shap_values_explanationAll= self.mpfConfig.exact_explainerAll(X)
+        self.logger.info('\nSaving explainer: ' + self.mpfConfig.explainer_path)
+        pickle.dump(self.mpfConfig.explainer,
+                    open(self.mpfConfig.explainer_path, "wb"))
 
-        self.mpfConfig.exact_explainer  = shap.Explainer(model.predict, X.iloc[:50, :])
-        self.mpfConfig.exact_explainer.shap_values_explanation0to50 = self.mpfConfig.exact_explainer(X.iloc[:50, :])
-#        self.mpfConfig.Explainer.shap_values0to50 = self.mpfConfig.Explainer.shap_values(X.iloc[0:50, :], nsamples=500)
+        self.logger.info('\nSaving shap values: ' + self.mpfConfig.shap_path)
+        pickle.dump(self.mpfConfig.shap_values0to50,
+                open(self.mpfConfig.shap_path, "wb"))
 
-        self.mpfConfig.kernel_explainer = shap.KernelExplainer(model.predict, X.iloc[:50, :])
-        self.mpfConfig.kernel_explainer.shap_values_explanation0to50 = self.mpfConfig.kernel_explainer(X.iloc[0:50, :])
+        return self.mpfConfig.explainer, self.mpfConfig.shap_values0to50
 
-#        self.mpfConfig.shap_values0to50 = self.mpfConfig.explainer.shap_values(X.iloc[0:50, :], nsamples=500)
-        # self.mpfConfig.shap_values51to100 = self.mpfConfig.explainer.shap_values(X.iloc[50:99, :], nsamples=500)
-        # self.mpfConfig.shap_value101to150 = self.mpfConfig.explainer.shap_values(X.iloc[100:149, :], nsamples=500)
-        # self.mpfConfig.shap_values50 = self.mpfConfig.explainer.shap_values(X.iloc[280:330, :], nsamples=500)
-
-        shap.summary_plot(self.mpfConfig.exact_explainer.shap_values0to50[0], X.iloc[0:50, :], plot_type="bar", feature_names=keyword)
-        shap.summary_plot(self.mpfConfig.kernel_explainer.shap_values0to50[0], X.iloc[0:50, :], plot_type="bar", feature_names=keyword)
-
-        shap.summary_plot(shap_values0to50[0], X.iloc[280:330, :], plot_type="bar", feature_names=keyword)
-        print(len(self.mpfConfig.shap_values))
-        print(self.mpfConfig.shap_values)
-        return self.mpfConfig.explainer, self.mpfConfig.shap_values
 
     def run_trials(self):
 
@@ -284,31 +295,57 @@ class MpfWorkflow(object):
         model_factory = self.mpfConfig.model_factory
         test_generator = self.mpfConfig.test_generator
 
-        self.mpfConfig.predictions = model_factory.predict(model, test_generator)
-        self.mpfConfig.predictions2 = model_factory.predict(model, test_generator)
-        self.mpfConfig.test_results = model_factory.evaluate(model, test_generator)
-
-        # debugging
-        print(f'predictions: {self.mpfConfig.predictions }')
-        print(f'test results: {self.mpfConfig.test_results}')
-
-#        model_factory.log_metrics(test_results)
-        #        model_factory.plot_metrics(model, test_generator, history)
-
-        # debugging
-        print("Finished predictions successfully")
-
         import pandas as pd
         df = pd.DataFrame(data=test_generator.file_x_stack)
         dft = df.transpose()
-        X = dft
+        self.mpfConfig.X = dft
 
-        explainer, shap_values = self._get_shap_values(model, test_generator, X)
-        explainer2, shap_values2 = self._get_shap_values(model, test_generator, X)
+        explainer, shap_values = self._get_shap_values(model, test_generator, self.mpfConfig.X)
         print("Finished shap successfully")
 
+        return self.mpfConfig.explainer, self.mpfConfig.shap_values0to50
+
     def selector(self):
-        pass
+        keyword = self.keyword7
+        if (len(self.mpfConfig.test_generator.file_x_stack) > 8):
+                keyword = self.keywordAll
+
+        # shap.summary_plot(self.mpfConfig.shap_values0to50[0], self.mpfConfig.X.iloc[0:50, :], plot_type="bar", feature_names=keyword)
+        # shap.summary_plot(self.mpfConfig.shap_values0to50, self.mpfConfig.X, plot_type="bar", feature_names=keyword)
 
     def modeler(self):
         pass
+
+    def cleanup(self):
+
+        # show's over, just save the stuff you want
+
+        if (hasattr(self.mpfConfig, 'X')):
+            self.mpfConfig.X = None
+
+        if (hasattr(self.mpfConfig, 'shap_values0to50')):
+            self.mpfConfig.shap_values0to50 = None
+
+        if (hasattr(self.mpfConfig, 'train_generator')):
+            self.mpfConfig.train_generator = None
+
+        if (hasattr(self.mpfConfig, 'validate_generator')):
+            self.mpfConfig.validate_generator = None
+
+        if (hasattr(self.mpfConfig, 'test_generator')):
+            self.mpfConfig.test_generator = None
+
+        if (hasattr(self.mpfConfig, 'explainer')):
+            self.mpfConfig.explainer = None
+
+        if (hasattr(self.mpfConfig, 'history')):
+            self.mpfConfig.history = None
+
+        if (hasattr(self.mpfConfig, 'model')):
+            self.mpfConfig.model = None
+
+        if (hasattr(self.mpfConfig, 'workflow')):
+            self.mpfConfig.workflow = None
+
+        import pickle
+        pickle.dump(self.mpfConfig, open(self.mpfConfig.cfg_path, "wb"))

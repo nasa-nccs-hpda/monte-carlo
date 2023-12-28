@@ -98,6 +98,9 @@ def main():
         print(inst)  # __str__ allows args to be printed directly,
         # but may be overridden in exception subclasses
 
+    finally:
+        mpfWorkflow.cleanup()
+
 # -------------------------------------------------------------------------------
 # Invoke the main
 # -------------------------------------------------------------------------------
