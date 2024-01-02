@@ -43,6 +43,8 @@ class MpfMonteCarloFactory(MonteCarloFactory):
                 mpfConfig.data_generator_config['branch_inputs'][0]['branch_files'][0]['bands']
         #TODO consider overriding band_nums in data_generator_config
 
+        mpfConfig.data_generator_config["num_bands"] = len(mpfConfig.bandList)
+
         if (mpfConfig.truthFileA):
                 mpfConfig.data_generator_config['truth_file_a'] = \
                     mpfConfig.truthFileA

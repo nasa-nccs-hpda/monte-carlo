@@ -13,6 +13,7 @@ from mc.model.config.MpfConfig import MpfConfig
 
 import pickle
 import shap
+import numpy as np
 
 class MpfWorkflow(object):
 
@@ -142,7 +143,8 @@ class MpfWorkflow(object):
         if not os.path.exists(self.mpfConfig.modelDir):
             os.mkdir(self.mpfConfig.modelDir)
 
-        self.mpfConfig.model_path = os.path.join(self.mpfConfig.modelDir, self.mpfConfig.model_name)
+        self.mpfConfig.model_path = os.path.join(self.mpfConfig.modelDir, self.mpfConfig.model_name +
+                                                 '[' + str(self.mpfConfig.bandList)[:] + '].model')
         if (not os.path.exists(self.mpfConfig.model_path)) or (not hasattr(self.mpfConfig, 'model_factory')):
 
             self.logger.info('\nCreating model: ' + self.mpfConfig.model_path)
@@ -177,14 +179,94 @@ class MpfWorkflow(object):
         if not os.path.exists(self.mpfConfig.trialsDir):
             os.mkdir(self.mpfConfig.trialsDir)
 
-        # self.mpfConfig.trial_path = os.path.join(self.mpfConfig.trialsDir, self.mpfConfig.model_name + '.test_generator.data')
-        # if (not os.path.exists(self.mpfConfig.trial_path)):
-        #
-        #     self.logger.info('\nSaving test data: ' + self.mpfConfig.trial_path)
-        #     pickle.dump(self.mpfConfig.test_generator,
-        #                 open(self.mpfConfig.trial_path, "wb"))
+        self.mpfConfig.trial_path = os.path.join(self.mpfConfig.trialsDir, self.mpfConfig.model_name +
+                                                 '[' + str(self.mpfConfig.bandList)[:] + '].test_generator.data')
+        if (not os.path.exists(self.mpfConfig.trial_path)):
+
+            self.logger.info('\nSaving test data: ' + self.mpfConfig.trial_path)
+            # pickle.dump(self.mpfConfig.test_generator,
+            #             open(self.mpfConfig.trial_path, "wb"))
 
         return self.mpfConfig
+
+    def randomize(self):
+
+        bandLen = int(self.mpfConfig.data_generator_config["num_bands"])
+
+        MLBS_2018_Reflectance_reflectance_warp_baseline = []
+        for i in range(bandLen):
+            MLBS_2018_Reflectance_reflectance_warp_baseline.append(str(i + 1))
+        bands = MLBS_2018_Reflectance_reflectance_warp_baseline
+        print('bands to sample ', bands)
+
+        bandOccurenceArr = np.zeros(bandLen).astype(int)
+        print(bandOccurenceArr)
+        bandAbsSumArr = np.zeros(bandLen)
+        bandMaxArr = np.zeros(bandLen)
+        bandMinArr = np.zeros(bandLen)
+        bandAvgArr = np.zeros(bandLen)
+
+        from random import sample
+        random_sets = []
+        num_samples = 0
+        max_num_samples = 1000000
+        batch_size = 10
+        max_num_occurences = 10
+        not_finished = True
+        bandFoundArr = np.zeros(bandLen).astype(int)
+        my_list = []
+        lastSavedBands = None
+
+        while not_finished == True:
+            #    print('\nbands: ', bands)
+            random_set = sample(bands, batch_size)
+            #    print('\nrandom_set: ', random_set)
+            random_sets.append(random_set)
+
+            for i in range(len(random_set)):
+                # get band from band list
+                bandNum = random_set[i]
+
+                # increment Occurence value in the cell that contains the band number
+                bandFoundArr[int(bandNum) - 1] = bandFoundArr[int(bandNum) - 1] + 1
+
+                for j in range(len(bandFoundArr)):
+                    if (bandFoundArr[j] > max_num_occurences):
+                        index = str(j + 1)
+                        if index not in my_list:
+                            my_list.append(index)
+                            print('remove: ', index)
+                            bands.remove(index)
+                            lastSavedBands = bands
+                            print('current bands = ', bands)
+                            print('running tally: ', bandFoundArr)
+
+            num_samples = num_samples + 1
+            if (num_samples > max_num_samples):
+                print(num_samples, ' > ', max_num_samples)
+                not_finished = False
+                break;
+            if (len(bands) < batch_size):
+                batch_size = len(bands)
+                #        not_finished = False
+
+            if (len(bands) < 1):
+                not_finished = False
+
+        print('final tally: ', bandFoundArr)
+        print('bands left to process:', bands)
+        print('random_sets:', len(random_sets), '\n', random_sets)
+
+        self.mpfConfig.random_sets = random_sets
+        self.mpfConfig.random_sets_path = os.path.join(self.mpfConfig.modelDir,
+                                                      self.mpfConfig.model_name +
+                                                      '[' + str(self.mpfConfig.bandList)[:] + '].randomized_collection')
+        self.logger.info('\nSaving randomized collection: ' + self.mpfConfig.random_sets_path)
+
+        pickle.dump(self.mpfConfig.random_sets,
+                    open(self.mpfConfig.random_sets_path, "wb"))
+
+        return self.mpfConfig.random_sets
 
     def prepare_images(self):
         self.mpfConfig = self._create_model()
@@ -255,7 +337,8 @@ class MpfWorkflow(object):
                 os.mkdir(self.mpfConfig.modelDir)
 
             self.mpfConfig.evaluation_path = os.path.join(self.mpfConfig.modelDir,
-                                                          self.mpfConfig.model_name + '.test_results')
+                                                          self.mpfConfig.model_name +
+                                                          '[' + str(self.mpfConfig.bandList)[:] + '].test_results')
             if (not os.path.exists(self.mpfConfig.evaluation_path)):
 
                 self.logger.info('\nSaving evaluation test results: ' + self.mpfConfig.evaluation_path)
@@ -273,14 +356,16 @@ class MpfWorkflow(object):
             os.mkdir(self.mpfConfig.permutationImportanceDir)
 
         self.mpfConfig.shap_path = \
-            os.path.join(self.mpfConfig.permutationImportanceDir, self.mpfConfig.model_name + '.shap_values0to50')
+            os.path.join(self.mpfConfig.permutationImportanceDir, self.mpfConfig.model_name +
+                         '[' + str(self.mpfConfig.bandList)[:] + '].shap_values0to50')
 
         self.mpfConfig.explainer_path = \
-            os.path.join(self.mpfConfig.permutationImportanceDir, self.mpfConfig.model_name + '.explainer_values0to50')
+            os.path.join(self.mpfConfig.permutationImportanceDir, self.mpfConfig.model_name +
+                         '[' + str(self.mpfConfig.bandList)[:] + '].explainer_values0to50')
 
-        self.logger.info('\nSaving explainer: ' + self.mpfConfig.explainer_path)
-        pickle.dump(self.mpfConfig.explainer,
-                    open(self.mpfConfig.explainer_path, "wb"))
+        # self.logger.info('\nSaving explainer: ' + self.mpfConfig.explainer_path)
+        # pickle.dump(self.mpfConfig.explainer,
+        #             open(self.mpfConfig.explainer_path, "wb"))
 
         self.logger.info('\nSaving shap values: ' + self.mpfConfig.shap_path)
         pickle.dump(self.mpfConfig.shap_values0to50,
@@ -348,4 +433,5 @@ class MpfWorkflow(object):
             self.mpfConfig.workflow = None
 
         import pickle
-        pickle.dump(self.mpfConfig, open(self.mpfConfig.cfg_path, "wb"))
+        if (self.mpfConfig.cfg_path != None):
+            pickle.dump(self.mpfConfig, open(self.mpfConfig.cfg_path, "wb"))

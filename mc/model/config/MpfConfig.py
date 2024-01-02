@@ -17,6 +17,7 @@ class MpfConfig(MonteCarloConfig):
         super().__init__()
 
         self.bandList  = None
+        self.bandListFile  = None
         self.dataPath = None
         self.hyperspectralFilePath = None
         self.truthFileA = None
@@ -29,13 +30,14 @@ class MpfConfig(MonteCarloConfig):
         self.explainer_path = None
         self.shap_path = None
         self.evaluation_path = None
-
+        self.clean = False
+        self.archive = False
 
     # ---------------------------------------------------------------------------
     # initializeFromValues
     # ---------------------------------------------------------------------------
-    def initializeFromValues(self, configFile, bandList, dataPath, hyperspectralFile,
-                             truthFileA, truthFileB, experiment, outDir, numProcs, numTrials):
+    def initializeFromValues(self, configFile, bandList, bandListFile, dataPath, hyperspectralFile,
+                             truthFileA, truthFileB, experiment, outDir, clean, archive, numProcs, numTrials):
 
         self.setConfigFile(configFile)
         self.setBandList(bandList)
@@ -49,12 +51,17 @@ class MpfConfig(MonteCarloConfig):
         self.setNumProcs(numProcs)
         self.setNumTrials(numTrials)
 
+    #TODO clean up with setters later (and validation)
+        self.bandListFile = bandListFile
+        self.clean = clean
+        self.archive = archive
+
     # ---------------------------------------------------------------------------
     # setBandList
     # ---------------------------------------------------------------------------
     def setBandList(self, bandList):
 
-        if bandList:
+        if ((bandList != None) and (len(bandList) > 0) and (str(bandList) != 'random')):
             self.bandList = [int(item) for item in bandList.split(',')]
 
     # ---------------------------------------------------------------------------

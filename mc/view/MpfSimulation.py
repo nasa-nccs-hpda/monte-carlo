@@ -1,8 +1,9 @@
-import sys
+import sys,os
 import argparse
 
 from mc.model.simulations.mpf.configureMpfRun import ConfigureMpfRun
 
+import pickle
 ###############################################################################################
 ########################### MPF Simulation ####################################################
 ###############################################################################################
@@ -40,8 +41,14 @@ def main():
                         type=str,
                         help='config file path for loading settings')
 
+    parser.add_argument('--bandListFile',
+                        default='',
+                        required = False,
+                        type=str,
+                        help='path to file containing lists of bands to process (mutually exclusive with --bandList')
+
     parser.add_argument('--bandList',
-                        help='list of bands to process', type=str)
+                        help='list of bands to process (mutually exclusive with --bandListFile', type=str)
 
     parser.add_argument('-dp',
                         help='root data path')
@@ -70,25 +77,78 @@ def main():
                         default=10,
                         help='number of trials for selecting top-ten predictors')
 
+    parser.add_argument(
+        "--clean", "--clean", required=False, dest='cleanbool',
+        action='store_true', help="Force cleaning of generated artifacts prior to run (e.g, model files)."
+    )
+    parser.add_argument(
+        "--archive", "--archive", required=False, dest='archivebool',
+        action='store_true', help="Archive interim artifacts."
+    )
+
     args = parser.parse_args()
 
+    mpfWorkflow = None
+
     # Run the process.
-    mpfWorkflowConfig = (ConfigureMpfRun(args.config, args.bandList, args.dp, args.hf, args.tfa, args.tfb,
-                    args.e, args.o, args.p, args.t)).config
+    mpfWorkflowConfig = (ConfigureMpfRun(args.config, args.bandList, args.bandListFile,
+                                         args.dp, args.hf, args.tfa, args.tfb, args.e,
+                                         args.o, args.cleanbool, args.archivebool, args.p, args.t)).config
     mpfWorkflow = mpfWorkflowConfig.workflow
 
+    random_sets_r = []
+
     try:
+        if ((args.bandListFile != None) and (len(args.bandListFile) > 0)):
+            # read random set list from file
+            random_set_file = args.bandListFile
+            random_sets_r = pickle.load(open(random_set_file, "rb"))
+        elif ((args.bandList != None) and (len(args.bandList) > 0) and (str(args.bandList) == 'random')):
+            #TODO get random sets
+            random_sets_r = mpfWorkflow.randomize()
+        else:
+            #TODO get band list from config file
+            random_sets_r.append(mpfWorkflowConfig.data_generator_config['branch_inputs'][0]["branch_files"][0]["bands"])
 
-        # Loop through the models in the config file
-        for model_config in mpfWorkflowConfig.models_config:
+        mpfWorkflowConfig.cfg_path = None
+        num_sets = 0
+        while len(random_sets_r) > 0:
+            num_sets = num_sets + 1
+            popped = random_sets_r.pop()
+            if (len(popped) < 2):
+                print('skipping 1-dimensional band list: ', str(popped[0]))
+            else:
+                if (type(popped[0]) == str):
+                    popped = [eval(i) for i in popped]
+                mpfWorkflowConfig.data_generator_config['branch_inputs'][0]["branch_files"][0]["bands"] =  popped
+                mpfWorkflowConfig.bandList = popped
+                mpfWorkflowConfig.data_generator_config['num_bands'] = len(popped)
 
-            mpfWorkflowConfig.model_config = model_config
-            mpfWorkflow.prepare_images()
-            mpfWorkflow.get_data()
-            mpfWorkflow.prepare_trials()
-            mpfWorkflow.run_trials()
-            mpfWorkflow.selector()
-            mpfWorkflow.modeler()
+                # Save the initial configuration object
+                if not os.path.exists(mpfWorkflowConfig.cfgDir):
+                    os.mkdir(mpfWorkflowConfig.cfgDir)
+
+                mpfWorkflowConfig.cfg_path = \
+                    os.path.join(mpfWorkflowConfig.cfgDir, mpfWorkflowConfig.model_name +
+                                 '[' + str(mpfWorkflowConfig.bandList)[:] + '].cfg')
+
+                if (not os.path.exists(mpfWorkflowConfig.cfg_path)):
+                    mpfWorkflow.logger.info('\nSaving initial configuration: ' + mpfWorkflowConfig.cfg_path)
+                    pickle.dump(mpfWorkflowConfig,
+                                open(mpfWorkflowConfig.cfg_path, "wb"))
+
+                # Loop through the models in the config file
+                for model_config in mpfWorkflowConfig.models_config:
+
+                    mpfWorkflowConfig.model_config = model_config
+                    mpfWorkflowConfig.model_config['layers'][0]['units'] = len(popped)
+
+                    mpfWorkflow.prepare_images()
+                    mpfWorkflow.get_data()
+                    mpfWorkflow.prepare_trials()
+                    mpfWorkflow.run_trials()
+                    mpfWorkflow.selector()
+                    mpfWorkflow.modeler()
 
     except OSError as err:
         print("OS error:", err)
@@ -99,7 +159,8 @@ def main():
         # but may be overridden in exception subclasses
 
     finally:
-        mpfWorkflow.cleanup()
+        if (mpfWorkflow != None):
+            mpfWorkflow.cleanup()
 
 # -------------------------------------------------------------------------------
 # Invoke the main
