@@ -13,13 +13,13 @@ class ConfigureMpfRun(MpfApplication):
     # ---------------------------------------------------------------------------
     # __init__
     # ---------------------------------------------------------------------------
-    def __init__(self, configFile, bandList, bandListFile, dataPath, hyperspectralFile, truthFileA, truthFileB,
+    def __init__(self, configFile, bandList, bandListFile, shapArchive, dataPath, hyperspectralFile, truthFileA, truthFileB,
                  experiment, outDir, clean, archive, numProcs=10, numTrials=10, logger=None):
 
         # Create the MpfConfig object.
         mpfConfig = MpfConfig()
 
-        mpfConfig.initializeFromValues(configFile, bandList, bandListFile, dataPath, hyperspectralFile,
+        mpfConfig.initializeFromValues(configFile, bandList, bandListFile, shapArchive, dataPath, hyperspectralFile,
                              truthFileA, truthFileB, experiment, outDir, clean, archive, int(numProcs), int(numTrials))
 
 

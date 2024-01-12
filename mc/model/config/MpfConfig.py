@@ -36,11 +36,13 @@ class MpfConfig(MonteCarloConfig):
     # ---------------------------------------------------------------------------
     # initializeFromValues
     # ---------------------------------------------------------------------------
-    def initializeFromValues(self, configFile, bandList, bandListFile, dataPath, hyperspectralFile,
+    def initializeFromValues(self, configFile, bandList, bandListFile, shapArchive, dataPath, hyperspectralFile,
                              truthFileA, truthFileB, experiment, outDir, clean, archive, numProcs, numTrials):
 
         self.setConfigFile(configFile)
         self.setBandList(bandList)
+        self.bandListFile = bandListFile
+        self.hyperspectralFilePath = hyperspectralFile
         if dataPath:
             self.setDataPath(dataPath)
             if hyperspectralFile: self.setHyperspectralFile(dataPath, hyperspectralFile)
@@ -53,6 +55,7 @@ class MpfConfig(MonteCarloConfig):
 
     #TODO clean up with setters later (and validation)
         self.bandListFile = bandListFile
+        self.shapArchive = shapArchive
         self.clean = clean
         self.archive = archive
 

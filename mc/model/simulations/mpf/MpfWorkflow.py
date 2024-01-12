@@ -14,6 +14,8 @@ from mc.model.config.MpfConfig import MpfConfig
 import pickle
 import shap
 import numpy as np
+import subprocess
+from datetime import datetime
 
 class MpfWorkflow(object):
 
@@ -22,51 +24,16 @@ class MpfWorkflow(object):
     # ---------------------------------------------------------------------------
     def __init__(self, mpfConfig, logger=None):
         self.mpfConfig = mpfConfig
-        self.mpfConfig.model_name = (self.mpfConfig.mlflow_config['EXPERIMENT_NAME']
+        self.mpfConfig.model_name = (self.mpfConfig.models_config[0]['model_name']
             + '::'
             + self.mpfConfig.mlflow_config['EXPERIMENT_ID']
             + '.keras')
 
-        # 1    Index Name=ARI
-        # 2    Index Name=CAI
-        # 3    Index Name=CRI550
-        # 4    Index Name=CRI700
-        # 5    Index Name=EVI
-        # 6    Index Name=EVI2
-        # 7    Index Name=fPAR
-        # 8    Index Name=LAI
-        # 9    Index Name=MCTI
-        # 10    Index Name=MSI
-        # 11   Index Name=NDII
-        # 12    Index Name=NDLI
-        # 13    Index Name=NDNI
-        # 14    Index Name=NDVI
-        # 15    Index Name=NDWI
-        # 16    Index Name=NIRv
-        # 17    Index Name=PRIn
-        # 18    Index Name=PRIw
-        # 19    Index Name=SAVI
-        # 20    Index Name=WBI
-        # 21    Index Name=Albedo
-
         #        "bands": [18, 14, 9, 3, 20, 8, 10]}]
-        keywordAll = ['ARI', 'CAI', 'CRI550', 'CRI700', 'EVI', 'EVI2', 'fPAR', 'LAI', 'MCTI', 'MSI',
+        self.keywordAll = ['ARI', 'CAI', 'CRI550', 'CRI700', 'EVI', 'EVI2', 'fPAR', 'LAI', 'MCTI', 'MSI',
                 'NDII', 'NDLI', 'NDNI', 'NDVI', 'NDWI', 'NIRv', 'PRIn', 'PRIw', 'SAVI', 'WBI', 'Albedo']
 
-        print(keywordAll)
-
-        keyword7 = list()
-        keyword7.append('PRIw')
-        keyword7.append('NDVI')
-        keyword7.append('MCTI')
-        keyword7.append('CRI550')
-        keyword7.append('WBI')
-        keyword7.append('LAI')
-        keyword7.append('MSI')
-        #        print(keyword7)
-
-        self.keywordAll = keywordAll
-        self.keyword7 = keyword7
+        self.keyword7 = ['PRIw','NDVI','MCTI','CRI550','WBI','LAI','MSI']
 
         self.logger = logger
 
@@ -136,8 +103,22 @@ class MpfWorkflow(object):
             # debugging
             print("Finished successfully")
 
+    def synchronized(wrapped):
+        import functools
+        import threading
+        lock = threading.RLock()
 
+        @functools.wraps(wrapped)
+        def _wrapper(*args, **kwargs):
+            with lock:
+                return wrapped(*args, **kwargs)
+
+        return _wrapper
+
+    @synchronized
     def _create_model(self):
+        import time
+
 
         model = None
         if not os.path.exists(self.mpfConfig.modelDir):
@@ -148,6 +129,7 @@ class MpfWorkflow(object):
         if (not os.path.exists(self.mpfConfig.model_path)) or (not hasattr(self.mpfConfig, 'model_factory')):
 
             self.logger.info('\nCreating model: ' + self.mpfConfig.model_path)
+            print('\nCreating model: ' + self.mpfConfig.model_path, flush=True)
 
             self.mpfConfig.model_type = self.mpfConfig.model_config.get("model_type", "Sequential")
             self.mpfConfig.model_factory = get_model_factory(self.mpfConfig.model_type)
@@ -161,9 +143,12 @@ class MpfWorkflow(object):
         else:
 
             self.logger.info('\nLoading model: ' +  self.mpfConfig.model_path)
+            print('\nLoading model: ' +  self.mpfConfig.model_path, flush=True)
 
             model = keras.models.load_model(self.mpfConfig.model_path)
 
+#        print('\nSleeping after creating/loading ' + self.mpfConfig.model_path)
+#        time.sleep(5)
         self.mpfConfig.model = model
         return self.mpfConfig
 
@@ -188,6 +173,74 @@ class MpfWorkflow(object):
             #             open(self.mpfConfig.trial_path, "wb"))
 
         return self.mpfConfig
+
+    @staticmethod
+    def task1(identifier, value, mpfWorkflowConfig):
+        from time import sleep
+        # report a message
+        print('task1: ', mpfWorkflowConfig.data_generator_config['branch_inputs'][0]["branch_files"][0]["bands"])
+        print(f'Task1 {identifier} executing with {value}', flush=True)
+        # block for a moment
+        sleep(value)
+        # return the generated value
+        return (identifier, value)
+
+    def process_band_list(self, band_list, mpfWorkflowConfig):
+        processed_band_list = None
+        try:
+            if (len(band_list) < 2):
+                print('skipping 1-dimensional band list: ', str(band_list[0]))
+            else:
+                print('Starting to process band_list ', str(band_list), flush=True)
+                if (type(band_list[0]) == str):
+                    band_list = [eval(i) for i in band_list]
+                mpfWorkflowConfig.data_generator_config['branch_inputs'][0]["branch_files"][0]["bands"] = band_list
+                mpfWorkflowConfig.bandList = band_list
+                mpfWorkflowConfig.data_generator_config['num_bands'] = len(band_list)
+
+                # self.set_paths(mpfWorkflowConfig.outDir,
+                #                mpfWorkflowConfig.mlflow_config['EXPERIMENT_ID'])
+
+                # # Save the initial configuration object
+                # if not os.path.exists(mpfWorkflowConfig.cfgDir):
+                #     os.mkdir(mpfWorkflowConfig.cfgDir)
+                #
+                # mpfWorkflowConfig.cfg_path = \
+                #     os.path.join(mpfWorkflowConfig.cfgDir, mpfWorkflowConfig.model_name +
+                #                  '[' + str(mpfWorkflowConfig.bandList)[:] + '].cfg')
+                #
+                # if (not os.path.exists(mpfWorkflowConfig.cfg_path)):
+                #     mpfWorkflow.logger.info('\nSaving initial configuration: ' + mpfWorkflowConfig.cfg_path)
+                #     pickle.dump(mpfWorkflowConfig,
+                #                 open(mpfWorkflowConfig.cfg_path, "wb"))
+                #
+                # Loop through the models in the config file
+                for model_config in mpfWorkflowConfig.models_config:
+                    start_time = datetime.now()
+
+                    mpfWorkflowConfig.model_config = model_config
+                    mpfWorkflowConfig.model_config['layers'][0]['units'] = len(band_list)
+
+                    mpfWorkflowConfig.workflow.prepare_images()
+                    mpfWorkflowConfig.workflow.get_data()
+                    mpfWorkflowConfig.workflow.prepare_trials()
+                    mpfWorkflowConfig.workflow.run_trials()
+                    mpfWorkflowConfig.workflow.selector()
+                    mpfWorkflowConfig.workflow.modeler()
+
+                processed_band_list = band_list
+                print('Processed band_list ', str(processed_band_list), flush=True)
+
+
+        except OSError as err:
+            print("OS error:", err)
+        except Exception as inst:
+            print(type(inst))  # the exception type
+            print(inst.args)  # arguments stored in .args
+            print(inst)  # __str__ allows args to be printed directly,
+            # but may be overridden in exception subclasses
+        finally:
+            return processed_band_list
 
     def randomize(self):
 
@@ -321,6 +374,9 @@ class MpfWorkflow(object):
 
 #            self.mpfConfig.predictions = model_factory.predict(model, test_generator)
             self.mpfConfig.test_results = model_factory.evaluate(model, test_generator)
+            t2 = time.time()
+            total_time = t2 - t1
+            print("Total time for model_factory.evaluate(() processing is: " + str(total_time) + " seconds.")
 
             # debugging
 #            print(f'predictions: {self.mpfConfig.predictions}')
@@ -333,8 +389,8 @@ class MpfWorkflow(object):
             print("Finished evaluation successfully")
 
             # save shap values
-            if not os.path.exists(self.mpfConfig.modelDir):
-                os.mkdir(self.mpfConfig.modelDir)
+            # if not os.path.exists(self.mpfConfig.modelDir):
+            #     os.mkdir(self.mpfConfig.modelDir)
 
             self.mpfConfig.evaluation_path = os.path.join(self.mpfConfig.modelDir,
                                                           self.mpfConfig.model_name +
@@ -348,8 +404,20 @@ class MpfWorkflow(object):
 
     def _get_shap_values(self, model, test_generator, X):
 
+        t0 = time.time()
         self.mpfConfig.explainer = shap.KernelExplainer(model.predict, X.iloc[:50, :])
-        self.mpfConfig.shap_values0to50 = self.mpfConfig.explainer.shap_values(X.iloc[0:50, :], nsamples=500)
+        t1 = time.time()
+        total_time = t1 - t0
+        print("\nTotal time for shap.KernelExplainer((model.predict, X.iloc[:50, :]) processing is: "
+              + str(total_time) + " seconds.")
+
+        #TODO figure out proper value for nsamples
+#        self.mpfConfig.shap_values0to50 = self.mpfConfig.explainer.shap_values(X.iloc[0:50, :], nsamples=500)
+        self.mpfConfig.shap_values0to50 = self.mpfConfig.explainer.shap_values(X.iloc[0:50, :], nsamples=25)
+        t2 = time.time()
+        total_time = t2 - t1
+        print("\nTotal time for explainer.shap_values(X.iloc[0:50, :], nsamples=25) processing is: "
+              + str(total_time) + " seconds.")
 
         # save shap values
         if not os.path.exists(self.mpfConfig.permutationImportanceDir):
@@ -370,6 +438,10 @@ class MpfWorkflow(object):
         self.logger.info('\nSaving shap values: ' + self.mpfConfig.shap_path)
         pickle.dump(self.mpfConfig.shap_values0to50,
                 open(self.mpfConfig.shap_path, "wb"))
+
+        t3 = time.time()
+        total_time = t3 - t0
+        print("\nTotal time for _get_shap_values() processing is: " + str(total_time) + " seconds.")
 
         return self.mpfConfig.explainer, self.mpfConfig.shap_values0to50
 
@@ -400,6 +472,87 @@ class MpfWorkflow(object):
 
     def modeler(self):
         pass
+
+
+    def set_paths(self, outDir, expId):
+        self.mpfConfig.clipReprojDir = os.path.join(outDir,  expId + '/CLIP_REPROJ')
+        self.mpfConfig.modelDir = os.path.join(outDir, expId + '/MODELS')
+        self.mpfConfig.cfgDir = os.path.join(outDir, expId + '/CONFIG')
+        self.mpfConfig.bandDir = os.path.join(outDir, expId + '/BANDS')
+        self.mpfConfig.permutationImportanceDir = os.path.join(outDir, expId + '/PERMUTATION_IMPORTANCE_VALUES')
+        self.mpfConfig.finishedDir = os.path.join(outDir, expId + '/FINISHED')
+        self.mpfConfig.merraDir = os.path.join(outDir, expId + '/RAW_MERRA')
+        self.mpfConfig.trialsDir = os.path.join(outDir, expId + '/TRIALS')
+
+    def file_exists(self, path):
+        # Determine if the associated shap file has been generated.  If so, drop it and save modified list
+        result = subprocess.run(["/usr/bin/ls", path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if (result.returncode == 0):
+            return True
+        else:
+            return False
+
+    def format_band_set(self, subset):
+        indexListIntStr = ''
+        count = 0
+        for band in subset:
+            if (count == 0):
+                indexListIntStr = indexListIntStr + band
+            else:
+                indexListIntStr = indexListIntStr + ', ' + band
+            count = count + 1
+        return indexListIntStr
+
+    @synchronized
+    def prune_band_sets(self, bandListFile, shapPrefix, mpfWorkflowConfig):
+        pruned = False
+        setFile = open(bandListFile, "rb")
+        random_sets_r = pickle.load(setFile)
+        setFile.flush()
+        setFile.close()
+        print('initial # of bands:', len(random_sets_r))
+
+        sets_to_process = []
+        for subset in range(len(random_sets_r) - 1, -1, -1):
+            if ((shapPrefix != None) and (len(shapPrefix) > 0)):
+                indexListIntStr = self.format_band_set(random_sets_r[subset])
+                shap_path = shapPrefix + "[[" + indexListIntStr + "]].shap_values0to50"
+                if (self.file_exists(shap_path)):
+                    print('band pruned:', subset, random_sets_r[subset])
+                    del random_sets_r[subset]
+                    pruned = True
+                    print('current # of bands:', len(random_sets_r))
+                else:
+                    sets_to_process.append(random_sets_r[subset])
+            else:
+                sets_to_process.append(random_sets_r[subset])
+
+            # Stop when batch limit is reached
+            if (len(sets_to_process) == mpfWorkflowConfig.numTrials):
+                    break;
+
+        if (pruned == True):
+            self.logger.info('\nSaving pruned sets: ' + bandListFile)
+            setFile2 = open(bandListFile, "wb")
+            pickle.dump(random_sets_r, setFile2)
+            setFile2.flush()
+            setFile2.close()
+            print('bands remaining after pruning:', len(random_sets_r))
+        return sets_to_process
+
+    @synchronized
+    def get_band_sets(self, bandList, bandListFile, shapArchive, mpfWorkflowConfig):
+        random_sets_r = []
+        if ((bandListFile != None) and (len(bandListFile) > 0)):
+            # read random set list from file
+            random_sets_r = self.prune_band_sets(bandListFile, shapArchive, mpfWorkflowConfig)
+        elif ((bandList != None) and (len(bandList) > 0) and (str(bandList) == 'random')):
+            #TODO get random sets
+            random_sets_r = mpfWorkflowConfig.workflow.randomize()
+        else:
+            #TODO get band list from config file
+            random_sets_r.append(mpfWorkflowConfig.data_generator_config['branch_inputs'][0]["branch_files"][0]["bands"])
+        return random_sets_r
 
     def cleanup(self):
 
@@ -432,6 +585,12 @@ class MpfWorkflow(object):
         if (hasattr(self.mpfConfig, 'workflow')):
             self.mpfConfig.workflow = None
 
-        import pickle
-        if (self.mpfConfig.cfg_path != None):
-            pickle.dump(self.mpfConfig, open(self.mpfConfig.cfg_path, "wb"))
+        if not os.path.exists(self.mpfConfig.cfgDir):
+            os.mkdir(self.mpfConfig.cfgDir)
+
+        self.mpfConfig.cfg_path = \
+            os.path.join(self.mpfConfig.cfgDir, self.mpfConfig.model_name + '].cfg')
+
+        if (not os.path.exists(self.mpfConfig.cfg_path)):
+            pickle.dump(self.mpfConfig,
+                        open(self.mpfConfig.cfg_path, "wb"))

@@ -2,8 +2,10 @@ import sys,os
 import argparse
 
 from mc.model.simulations.mpf.configureMpfRun import ConfigureMpfRun
-
+from mc.model.simulations.mpf.MpfWorkflow import MpfWorkflow
+from datetime import datetime
 import pickle
+
 ###############################################################################################
 ########################### MPF Simulation ####################################################
 ###############################################################################################
@@ -87,6 +89,7 @@ def main():
     )
 
     args = parser.parse_args()
+    start_time = datetime.now()
 
     mpfWorkflow = None
 
@@ -118,37 +121,10 @@ def main():
             if (len(popped) < 2):
                 print('skipping 1-dimensional band list: ', str(popped[0]))
             else:
-                if (type(popped[0]) == str):
-                    popped = [eval(i) for i in popped]
-                mpfWorkflowConfig.data_generator_config['branch_inputs'][0]["branch_files"][0]["bands"] =  popped
-                mpfWorkflowConfig.bandList = popped
-                mpfWorkflowConfig.data_generator_config['num_bands'] = len(popped)
+                MpfWorkflow.process_band_list(popped, mpfWorkflowConfig, mpfWorkflow)
 
-                # Save the initial configuration object
-                if not os.path.exists(mpfWorkflowConfig.cfgDir):
-                    os.mkdir(mpfWorkflowConfig.cfgDir)
-
-                mpfWorkflowConfig.cfg_path = \
-                    os.path.join(mpfWorkflowConfig.cfgDir, mpfWorkflowConfig.model_name +
-                                 '[' + str(mpfWorkflowConfig.bandList)[:] + '].cfg')
-
-                if (not os.path.exists(mpfWorkflowConfig.cfg_path)):
-                    mpfWorkflow.logger.info('\nSaving initial configuration: ' + mpfWorkflowConfig.cfg_path)
-                    pickle.dump(mpfWorkflowConfig,
-                                open(mpfWorkflowConfig.cfg_path, "wb"))
-
-                # Loop through the models in the config file
-                for model_config in mpfWorkflowConfig.models_config:
-
-                    mpfWorkflowConfig.model_config = model_config
-                    mpfWorkflowConfig.model_config['layers'][0]['units'] = len(popped)
-
-                    mpfWorkflow.prepare_images()
-                    mpfWorkflow.get_data()
-                    mpfWorkflow.prepare_trials()
-                    mpfWorkflow.run_trials()
-                    mpfWorkflow.selector()
-                    mpfWorkflow.modeler()
+                if (mpfWorkflow != None):
+                    mpfWorkflow.cleanup()
 
     except OSError as err:
         print("OS error:", err)
@@ -159,8 +135,9 @@ def main():
         # but may be overridden in exception subclasses
 
     finally:
-        if (mpfWorkflow != None):
-            mpfWorkflow.cleanup()
+
+        time_elapsed = datetime.now() - start_time
+        print('Time elapsed (hh:mm:ss.ms) {}'.format(time_elapsed))
 
 # -------------------------------------------------------------------------------
 # Invoke the main

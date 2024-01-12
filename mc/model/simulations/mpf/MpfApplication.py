@@ -31,14 +31,14 @@ class MpfApplication(object):
             raise RuntimeError('An application name must be provided.')
 
         self.applicationName = applicationName
-        self.clipReprojDir = os.path.join(mpfConfig.outDir, 'CLIP_REPROJ')
-        self.config.modelDir = os.path.join(mpfConfig.outDir, 'MODELS')
-        self.config.cfgDir = os.path.join(mpfConfig.outDir, 'CONFIG')
-        self.config.bandDir = os.path.join(mpfConfig.outDir, 'BANDS')
-        self.config.permutationImportanceDir = os.path.join(mpfConfig.outDir, 'PERMUTATION_IMPORTANCE_VALUES')
-        self.finishedDir = os.path.join(mpfConfig.outDir, 'FINISHED')
-        self.merraDir = os.path.join(mpfConfig.outDir, 'RAW_MERRA')
-        self.config.trialsDir = os.path.join(mpfConfig.outDir, 'TRIALS')
+        # self.clipReprojDir = os.path.join(mpfConfig.outDir, 'CLIP_REPROJ')
+        # self.config.modelDir = os.path.join(mpfConfig.outDir, 'MODELS')
+        # self.config.cfgDir = os.path.join(mpfConfig.outDir, 'CONFIG')
+        # self.config.bandDir = os.path.join(mpfConfig.outDir, 'BANDS')
+        # self.config.permutationImportanceDir = os.path.join(mpfConfig.outDir, 'PERMUTATION_IMPORTANCE_VALUES')
+        # self.finishedDir = os.path.join(mpfConfig.outDir, 'FINISHED')
+        # self.merraDir = os.path.join(mpfConfig.outDir, 'RAW_MERRA')
+        # self.config.trialsDir = os.path.join(mpfConfig.outDir, 'TRIALS')
 
     # ---------------------------------------------------------------------------
     # logHeader
