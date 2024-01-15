@@ -377,10 +377,6 @@ class MpfWorkflow(object):
             # debugging
             print("Finished evaluation successfully")
 
-            # save shap values
-            # if not os.path.exists(self.mpfConfig.modelDir):
-            #     os.mkdir(self.mpfConfig.modelDir)
-
             self.mpfConfig.evaluation_path = os.path.join(self.mpfConfig.modelDir,
                                                           self.mpfConfig.model_name +
                                                           '[' + str(self.mpfConfig.bandList)[:] + '].test_results')
