@@ -49,6 +49,12 @@ def main():
                         type=str,
                         help='path to file containing lists of bands to process (mutually exclusive with --bandList')
 
+    parser.add_argument('--shapArchive',
+                        default='',
+                        required = False,
+                        type=str,
+                        help='path to directory containing previously processed shap files')
+
     parser.add_argument('--bandList',
                         help='list of bands to process (mutually exclusive with --bandListFile', type=str)
 
@@ -94,24 +100,17 @@ def main():
     mpfWorkflow = None
 
     # Run the process.
-    mpfWorkflowConfig = (ConfigureMpfRun(args.config, args.bandList, args.bandListFile,
+    mpfWorkflowConfig = (ConfigureMpfRun(args.config, args.bandList, args.bandListFile, args.shapArchive,
                                          args.dp, args.hf, args.tfa, args.tfb, args.e,
                                          args.o, args.cleanbool, args.archivebool, args.p, args.t)).config
-    mpfWorkflow = mpfWorkflowConfig.workflow
+    mpfWorkflowConfig.workflow.set_paths(mpfWorkflowConfig.outDir,
+                   mpfWorkflowConfig.mlflow_config['EXPERIMENT_ID'])
 
     random_sets_r = []
 
     try:
-        if ((args.bandListFile != None) and (len(args.bandListFile) > 0)):
-            # read random set list from file
-            random_set_file = args.bandListFile
-            random_sets_r = pickle.load(open(random_set_file, "rb"))
-        elif ((args.bandList != None) and (len(args.bandList) > 0) and (str(args.bandList) == 'random')):
-            #TODO get random sets
-            random_sets_r = mpfWorkflow.randomize()
-        else:
-            #TODO get band list from config file
-            random_sets_r.append(mpfWorkflowConfig.data_generator_config['branch_inputs'][0]["branch_files"][0]["bands"])
+        random_sets_r = mpfWorkflowConfig.workflow.get_band_sets(
+            args.bandList, args.bandListFile, args.shapArchive, mpfWorkflowConfig)
 
         mpfWorkflowConfig.cfg_path = None
         num_sets = 0
@@ -121,7 +120,7 @@ def main():
             if (len(popped) < 2):
                 print('skipping 1-dimensional band list: ', str(popped[0]))
             else:
-                MpfWorkflow.process_band_list(popped, mpfWorkflowConfig, mpfWorkflow)
+                mpfWorkflowConfig.workflow.process_band_list(popped, mpfWorkflowConfig)
 
                 if (mpfWorkflow != None):
                     mpfWorkflow.cleanup()

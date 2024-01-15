@@ -174,17 +174,6 @@ class MpfWorkflow(object):
 
         return self.mpfConfig
 
-    @staticmethod
-    def task1(identifier, value, mpfWorkflowConfig):
-        from time import sleep
-        # report a message
-        print('task1: ', mpfWorkflowConfig.data_generator_config['branch_inputs'][0]["branch_files"][0]["bands"])
-        print(f'Task1 {identifier} executing with {value}', flush=True)
-        # block for a moment
-        sleep(value)
-        # return the generated value
-        return (identifier, value)
-
     def process_band_list(self, band_list, mpfWorkflowConfig):
         processed_band_list = None
         try:
@@ -412,11 +401,13 @@ class MpfWorkflow(object):
               + str(total_time) + " seconds.")
 
         #TODO figure out proper value for nsamples
+        nsamples = 150
+        nfeatures = 50
 #        self.mpfConfig.shap_values0to50 = self.mpfConfig.explainer.shap_values(X.iloc[0:50, :], nsamples=500)
-        self.mpfConfig.shap_values0to50 = self.mpfConfig.explainer.shap_values(X.iloc[0:50, :], nsamples=25)
+        self.mpfConfig.shap_values0to50 = self.mpfConfig.explainer.shap_values(X.iloc[0:nfeatures, :], nsamples=nsamples)
         t2 = time.time()
         total_time = t2 - t1
-        print("\nTotal time for explainer.shap_values(X.iloc[0:50, :], nsamples=25) processing is: "
+        print("\nTotal time for explainer.shap_values(X.iloc[0:",str(nfeatures),", :], nsamples=",str(nsamples),") processing is: "
               + str(total_time) + " seconds.")
 
         # save shap values
@@ -519,13 +510,17 @@ class MpfWorkflow(object):
                 shap_path = shapPrefix + "[[" + indexListIntStr + "]].shap_values0to50"
                 if (self.file_exists(shap_path)):
                     print('band pruned:', subset, random_sets_r[subset])
-                    del random_sets_r[subset]
+#                    del random_sets_r[subset]
                     pruned = True
                     print('current # of bands:', len(random_sets_r))
                 else:
                     sets_to_process.append(random_sets_r[subset])
             else:
                 sets_to_process.append(random_sets_r[subset])
+
+            # TODO currently deleting and assume that processing completes.  Should make conditional on success
+            del random_sets_r[subset]
+            pruned = True
 
             # Stop when batch limit is reached
             if (len(sets_to_process) == mpfWorkflowConfig.numTrials):
