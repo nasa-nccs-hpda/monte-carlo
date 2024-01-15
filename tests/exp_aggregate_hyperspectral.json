@@ -18,7 +18,7 @@
       "data_path": "/explore/nobackup/projects/ilab/data/AGB/test/beta_pmm/",
       "dataset_width": 1000,
       "dataset_height": 1000,
-      "patch_width":  1,
+      "patch_width": 1,
       "patch_height": 1,
       "batch_size": 1000,
       "full_hyperspectral": false,
