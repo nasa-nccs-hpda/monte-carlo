@@ -16,6 +16,7 @@ import shap
 import numpy as np
 import subprocess
 from datetime import datetime
+import tensorflow as tf
 
 class MpfWorkflow(object):
 
@@ -124,8 +125,17 @@ class MpfWorkflow(object):
         if not os.path.exists(self.mpfConfig.modelDir):
             os.mkdir(self.mpfConfig.modelDir)
 
+        import socket
+        hostname = socket.gethostname()
+        IPAddr = socket.gethostbyname(hostname)
+        print("Your Computer Name is:" + hostname)
+        print("Your Computer IP Address is:" + IPAddr)
+
         self.mpfConfig.model_path = os.path.join(self.mpfConfig.modelDir, self.mpfConfig.model_name +
                                                  '[' + str(self.mpfConfig.bandList)[:] + '].model')
+        # self.mpfConfig.fit_path = os.path.join(self.mpfConfig.modelDir, self.mpfConfig.model_name +
+        #                                          '[' + str(self.mpfConfig.bandList)[:] + '].model')
+#        if (not os.path.exists(self.mpfConfig.model_path)):
         if (not os.path.exists(self.mpfConfig.model_path)) or (not hasattr(self.mpfConfig, 'model_factory')):
 
             self.logger.info('\nCreating model: ' + self.mpfConfig.model_path)
@@ -137,7 +147,10 @@ class MpfWorkflow(object):
                                                               self.mpfConfig.data_generator_config)
             model = self.mpfConfig.model_factory.compile_model(model, self.mpfConfig.model_config)
 
-            model.save(self.mpfConfig.model_path)
+
+
+            save_options = tf.saved_model.SaveOptions(experimental_io_device=hostname)
+            model.save(self.mpfConfig.model_path, save_options)
             self.model_path = self.mpfConfig.model_path
 
         else:
@@ -145,10 +158,16 @@ class MpfWorkflow(object):
             self.logger.info('\nLoading model: ' +  self.mpfConfig.model_path)
             print('\nLoading model: ' +  self.mpfConfig.model_path, flush=True)
 
-            model = keras.models.load_model(self.mpfConfig.model_path)
+            # Loading the model from a path on localhost.
+            another_strategy = tf.distribute.MirroredStrategy()
+            with another_strategy.scope():
+                load_options = tf.saved_model.LoadOptions(experimental_io_device=hostname)
+                loaded = tf.keras.models.load_model(self.mpfConfig.model_path, options=load_options)
+#            model = keras.models.load_model(self.mpfConfig.model_path)
 
-#        print('\nSleeping after creating/loading ' + self.mpfConfig.model_path)
-#        time.sleep(5)
+        if (not hasattr(self.mpfConfig, 'model_factory')):
+            self.mpfConfig.model_factory = get_model_factory(self.mpfConfig.model_type)
+
         self.mpfConfig.model = model
         return self.mpfConfig
 
@@ -187,22 +206,6 @@ class MpfWorkflow(object):
                 mpfWorkflowConfig.bandList = band_list
                 mpfWorkflowConfig.data_generator_config['num_bands'] = len(band_list)
 
-                # self.set_paths(mpfWorkflowConfig.outDir,
-                #                mpfWorkflowConfig.mlflow_config['EXPERIMENT_ID'])
-
-                # # Save the initial configuration object
-                # if not os.path.exists(mpfWorkflowConfig.cfgDir):
-                #     os.mkdir(mpfWorkflowConfig.cfgDir)
-                #
-                # mpfWorkflowConfig.cfg_path = \
-                #     os.path.join(mpfWorkflowConfig.cfgDir, mpfWorkflowConfig.model_name +
-                #                  '[' + str(mpfWorkflowConfig.bandList)[:] + '].cfg')
-                #
-                # if (not os.path.exists(mpfWorkflowConfig.cfg_path)):
-                #     mpfWorkflow.logger.info('\nSaving initial configuration: ' + mpfWorkflowConfig.cfg_path)
-                #     pickle.dump(mpfWorkflowConfig,
-                #                 open(mpfWorkflowConfig.cfg_path, "wb"))
-                #
                 # Loop through the models in the config file
                 for model_config in mpfWorkflowConfig.models_config:
                     start_time = datetime.now()
@@ -435,17 +438,25 @@ class MpfWorkflow(object):
 
     def run_trials(self):
 
-        model = self.mpfConfig.model
-        model_factory = self.mpfConfig.model_factory
-        test_generator = self.mpfConfig.test_generator
+        skipIt = False
+        if (len(self.mpfConfig.shapArchive) > 0):
+            indexListIntStr = self.format_band_set(self.mpfConfig.bandList)
+            shap_path = self.mpfConfig.shapArchive + "[[" + indexListIntStr + "]].shap_values0to50"
+            if (self.file_exists(shap_path)):
+                skipIt = True
 
-        import pandas as pd
-        df = pd.DataFrame(data=test_generator.file_x_stack)
-        dft = df.transpose()
-        self.mpfConfig.X = dft
+        if (skipIt == False):
+            model = self.mpfConfig.model
+            model_factory = self.mpfConfig.model_factory
+            test_generator = self.mpfConfig.test_generator
 
-        explainer, shap_values = self._get_shap_values(model, test_generator, self.mpfConfig.X)
-        print("Finished shap successfully")
+            import pandas as pd
+            df = pd.DataFrame(data=test_generator.file_x_stack)
+            dft = df.transpose()
+            self.mpfConfig.X = dft
+
+            explainer, shap_values = self._get_shap_values(model, test_generator, self.mpfConfig.X)
+            print("Finished shap successfully")
 
         return self.mpfConfig.explainer, self.mpfConfig.shap_values0to50
 
@@ -484,9 +495,9 @@ class MpfWorkflow(object):
         count = 0
         for band in subset:
             if (count == 0):
-                indexListIntStr = indexListIntStr + band
+                indexListIntStr = indexListIntStr + str(band)
             else:
-                indexListIntStr = indexListIntStr + ', ' + band
+                indexListIntStr = indexListIntStr + ', ' + str(band)
             count = count + 1
         return indexListIntStr
 
