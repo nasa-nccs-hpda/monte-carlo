@@ -357,37 +357,27 @@ class MpfWorkflow(object):
             total_time = t1 - t0
 
             mlflow.log_param("Training time", total_time)
-
-            print()
             print("Total time for model.fit() processing is: " + str(total_time) + " seconds.")
 
             if model_type == "XGBoost":
                 model_factory.summary(model)
-
-#            self.mpfConfig.predictions = model_factory.predict(model, test_generator)
-            self.mpfConfig.test_results = model_factory.evaluate(model, test_generator)
-            t2 = time.time()
-            total_time = t2 - t1
-            print("Total time for model_factory.evaluate(() processing is: " + str(total_time) + " seconds.")
-
-            # debugging
-#            print(f'predictions: {self.mpfConfig.predictions}')
-            print(f'test results: {self.mpfConfig.test_results}')
-
-            #        model_factory.log_metrics(test_results)
-            #        model_factory.plot_metrics(model, test_generator, history)
-
-            # debugging
-            print("Finished evaluation successfully")
 
             self.mpfConfig.evaluation_path = os.path.join(self.mpfConfig.modelDir,
                                                           self.mpfConfig.model_name +
                                                           '[' + str(self.mpfConfig.bandList)[:] + '].test_results')
             if (not os.path.exists(self.mpfConfig.evaluation_path)):
 
+                t2 = time.time()
+                total_time = t2 - t1
+                self.mpfConfig.test_results = model_factory.evaluate(model, test_generator)
+
+                print(f'Finished evaluation successfully - test results: {self.mpfConfig.test_results}')
                 self.logger.info('\nSaving evaluation test results: ' + self.mpfConfig.evaluation_path)
                 pickle.dump(self.mpfConfig.test_results,
                             open(self.mpfConfig.evaluation_path, "wb"))
+
+                print("Total time for model_factory.evaluate(() processing is: " + str(total_time) + " seconds.")
+
 
 
     def _get_shap_values(self, model, test_generator, X):
