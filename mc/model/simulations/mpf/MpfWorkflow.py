@@ -1,7 +1,7 @@
 import json
 import os
 import time
-import keras
+import socket
 
 from multi_path_fusion.src.utils.mlflow_helpers import setup_mlflow, log_params
 from multi_path_fusion.src.utils.data_generator_helpers import load_data_generator
@@ -125,12 +125,6 @@ class MpfWorkflow(object):
         if not os.path.exists(self.mpfConfig.modelDir):
             os.mkdir(self.mpfConfig.modelDir)
 
-        import socket
-        hostname = socket.gethostname()
-        IPAddr = socket.gethostbyname(hostname)
-        print("Your Computer Name is:" + hostname)
-        print("Your Computer IP Address is:" + IPAddr)
-
         self.mpfConfig.model_path = os.path.join(self.mpfConfig.modelDir, self.mpfConfig.model_name +
                                                  '[' + str(self.mpfConfig.bandList)[:] + '].model')
         # self.mpfConfig.fit_path = os.path.join(self.mpfConfig.modelDir, self.mpfConfig.model_name +
@@ -149,7 +143,7 @@ class MpfWorkflow(object):
 
 
 
-            save_options = tf.saved_model.SaveOptions(experimental_io_device=hostname)
+            save_options = tf.saved_model.SaveOptions(experimental_io_device=socket.gethostname())
             model.save(self.mpfConfig.model_path, save_options)
             self.model_path = self.mpfConfig.model_path
 
@@ -161,7 +155,7 @@ class MpfWorkflow(object):
             # Loading the model from a path on localhost.
             another_strategy = tf.distribute.MirroredStrategy()
             with another_strategy.scope():
-                load_options = tf.saved_model.LoadOptions(experimental_io_device=hostname)
+                load_options = tf.saved_model.LoadOptions(experimental_io_device=socket.gethostname())
                 loaded = tf.keras.models.load_model(self.mpfConfig.model_path, options=load_options)
 #            model = keras.models.load_model(self.mpfConfig.model_path)
 

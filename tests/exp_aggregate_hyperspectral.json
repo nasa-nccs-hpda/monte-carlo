@@ -35,7 +35,7 @@
     },
     "models": [
       {
-        "model_name": "MLP_SGD_7_layers_1024_units_MAE_200_epochs",
+        "model_name": "MLP_SGD_7_layers_1024_units_MAE_0_epochs",
         "model_type": "Sequential",
         "model_description": "Testing the full hyperspectral image. Trying this one out with SGD at a learning rate of 0.3, and a loss of MAE to see if that helps",
         "layers": [
@@ -101,7 +101,7 @@
           "loss": "mean_absolute_error"
         },
         "training_options": {
-          "epochs": 200
+          "epochs": 10
         }
       }
     ]

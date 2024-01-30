@@ -4,7 +4,7 @@ import argparse
 from mc.model.simulations.mpf.configureMpfRun import ConfigureMpfRun
 from mc.model.simulations.mpf.MpfWorkflow import MpfWorkflow
 from datetime import datetime
-import pickle
+import socket
 import multiprocessing as multiprocessing
 
 
@@ -37,6 +37,11 @@ import multiprocessing as multiprocessing
 def main():
     # Process command-line args. 
     desc = 'This application run an end-to-end MPF simulation'
+
+    hostname = socket.gethostname()
+    IPAddr = socket.gethostbyname(hostname)
+    print("Your Computer Name is:" + hostname)
+    print("Your Computer IP Address is:" + IPAddr)
 
     parser = argparse.ArgumentParser(description=desc)
 
@@ -139,7 +144,7 @@ def main():
     finally:
 
         time_elapsed = datetime.now() - start_time
-        print('Time elapsed (hh:mm:ss.ms) {}'.format(time_elapsed))
+        print('Time elapsed on node [{}] = (hh:mm:ss.ms) {}'.format(hostname, time_elapsed))
 
 # -------------------------------------------------------------------------------
 # Invoke the main
