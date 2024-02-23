@@ -1,0 +1,77 @@
+{
+  "mlflow": {
+    "TRACKING_URI": "/explore/nobackup/projects/ilab/data/AGB/test/mlruns/exp_7bands_load_model",
+    "EXPERIMENT_NAME": "Exp_7bands_stats[18,14,9,3,20,8,10]"
+  },
+  "gpu": {
+    "GPUS": "006"
+  },
+  "data_generator": {
+    "branch_inputs": [
+      {
+        "branch_files":
+        [{"mlbs_year_filepath": "MLBS_2018_541567.6_4136443.0_542567.6_4137443.0/MLBS_2018_hyperspectral_indices.tif",
+        "bands1": [18,14,9,3,20,8,10],
+        "bands2": [17,4,1,15,6,7,11],
+        "bands3": [16,13,12,2,5,19,21],
+        "bands":  [2,16],
+        "bands7": [11,16,9,10,8],
+        "bands6": [12,2,4,21,13,14,17,19,1,7,18,16,20,6,15,9,5,3,8,10,11],
+        "bands5": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+         }]
+      }
+    ],
+    "data_path": "/explore/nobackup/projects/ilab/data/AGB/test/beta_pmm/",
+    "dataset_width": 1000,
+    "dataset_height": 1000,
+    "patch_width": 1,
+    "patch_height": 1,
+    "batch_size": 50,
+    "full_hyperspectral": false,
+    "num_bands": 5,
+    "truth_file_a": "MLBS_2018_541567.6_4136443.0_542567.6_4137443.0/MLBS_2018_FSDGtif_CHM_warp.tif",
+    "truth_file_b": "MLBS_2021_541567.6_4136443.0_542567.6_4137443.0/MLBS_2021_FSDGtif_CHM_warp.tif",
+    "year_a": 2018,
+    "year_b": 2021,
+    "height_inc": true,
+    "randomize_pixels": true,
+    "scale_data_method": "minmax",
+    "split_tuple": [80,10,10],
+    "bins": [-0.5, -0.1, 0.1, 0.5]
+  },
+  "models": [
+    {
+      "model_name": "MLP_7bands_2_epochs",
+      "model_type": "Sequential",
+      "model_description": "Testing the Keras functionality after this whole architecture redesign",
+      "layers": [
+        {
+          "type": "Dense",
+          "units":5,
+          "return_sequences": true,
+          "activation": "gelu",
+          "kernel_initializer": "he_normal",
+          "use_bias": true
+        },
+        {
+          "type": "Dense",
+          "units": 5,
+         "activation": "softmax"
+        }
+      ],
+      "compile_options": {
+        "optimizer": "adam",
+        "loss": "sparse_categorical_crossentropy"
+      },
+      "training_options": {
+        "epochs": 1
+      },
+      "callbacks": {
+        "EarlyStopping": {
+          "monitor": "val_loss",
+          "patience": 1
+        }
+      }
+    }
+  ]
+}
