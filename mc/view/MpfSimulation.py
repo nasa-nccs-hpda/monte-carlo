@@ -114,7 +114,7 @@ def main():
 
     try:
         random_sets_r = mpfWorkflowConfig.workflow.get_band_sets(
-            args.bandList, args.bandListFile, args.shapArchive, mpfWorkflowConfig)
+            args.bandList, args.bandListFile, args.shapArchive, args.prune, mpfWorkflowConfig)
 
         mpfWorkflowConfig.cfg_path = None
         num_sets = 0
@@ -141,6 +141,7 @@ def main():
 
         time_elapsed = datetime.now() - start_time
         print('Time elapsed on node [{}] = (hh:mm:ss.ms) {}'.format(hostname, time_elapsed))
+        sys.exit()
 
 # -------------------------------------------------------------------------------
 # Invoke the main

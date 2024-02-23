@@ -65,6 +65,12 @@ def main():
     parser.add_argument('--bandList',
                         help='list of bands to process (mutually exclusive with --bandListFile', type=str)
 
+    parser.add_argument('--prune',
+                        default='model',
+                        required = False,
+                        type=str,
+                        help='prune subsets remaining to process based on existing shap files or model files.  Run with shap option to cleean up at the end.')
+
     parser.add_argument('-dp',
                         help='root data path')
 
@@ -106,14 +112,20 @@ def main():
 
     # Run the process.
     mpfWorkflowConfig = (ConfigureMpfRun(args.config, args.bandList, args.bandListFile, args.shapArchive,
-                                         args.dp, args.hf, args.tfa, args.tfb, args.e,
+                                         args.prune, args.dp, args.hf, args.tfa, args.tfb, args.e,
                                          args.o, args.cleanbool, args.archivebool, args.p, args.t)).config
     mpfWorkflowConfig.workflow.set_paths(mpfWorkflowConfig.outDir,
                    mpfWorkflowConfig.mlflow_config['EXPERIMENT_ID'])
     try:
 
+        # Use output directory for shap search if no shap archive is specified
+        if ((args.shapArchive != None) and (len(args.shapArchive) > 0)):
+            shapLocation = args.shapArchive
+        else:
+            shapLocation = args.o
+
         random_sets_r = mpfWorkflowConfig.workflow.get_band_sets(
-            args.bandList, args.bandListFile, args.shapArchive, mpfWorkflowConfig)
+            args.bandList, args.bandListFile, shapLocation, args.prune, mpfWorkflowConfig)
         num_workers = len(random_sets_r)
         if (num_workers > 0):
             from multiprocessing.pool import Pool
@@ -145,6 +157,7 @@ def main():
 
         time_elapsed = datetime.now() - start_time
         print('Time elapsed on node [{}] = (hh:mm:ss.ms) {}'.format(hostname, time_elapsed))
+        sys.exit()
 
 # -------------------------------------------------------------------------------
 # Invoke the main

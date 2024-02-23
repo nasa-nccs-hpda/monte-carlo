@@ -17,6 +17,8 @@ import numpy as np
 import subprocess
 from datetime import datetime
 import tensorflow as tf
+from time import sleep
+import glob
 
 class MpfWorkflow(object):
 
@@ -123,7 +125,11 @@ class MpfWorkflow(object):
 
         model = None
         if not os.path.exists(self.mpfConfig.modelDir):
-            os.mkdir(self.mpfConfig.modelDir)
+            try:
+                os.mkdir(self.mpfConfig.modelDir)
+            except Exception as inst:
+                print("Unable to create directory because it most likely already exists: ",
+                      self.mpfConfig.modelDir)  # the exception type
 
         self.mpfConfig.model_path = os.path.join(self.mpfConfig.modelDir, self.mpfConfig.model_name +
                                                  '[' + str(self.mpfConfig.bandList)[:] + '].model')
@@ -189,6 +195,7 @@ class MpfWorkflow(object):
 
     def process_band_list(self, band_list, mpfWorkflowConfig):
         processed_band_list = None
+        sleep(5)
         try:
             if (len(band_list) < 2):
                 print('skipping 1-dimensional band list: ', str(band_list[0]))
@@ -486,28 +493,60 @@ class MpfWorkflow(object):
         return indexListIntStr
 
     @synchronized
-    def prune_band_sets(self, bandListFile, shapPrefix, mpfWorkflowConfig):
+    def _get_shap_files(self, shapPrefix, prune):
+        processedShapFiles = None
+        if (prune == 'model'):
+            # assume that if .model files exist, trial will complete.  So, don't spoil the fun and rerun.
+            processedShapFiles = glob.glob(shapPrefix + '**/**/MODELS/*].model', recursive=True)
+        else:
+            processedShapFiles = glob.glob(shapPrefix + '**/**/PERMUTATION_IMPORTANCE_VALUES/*.shap_values0to50', recursive=True)
+        print('# of shap files already processed:', len(processedShapFiles))
+        return processedShapFiles
+
+    # @synchronized
+    def prune_band_sets(self, bandListFile, shapPrefix, prune, mpfWorkflowConfig):
         pruned = False
         setFile = open(bandListFile, "rb")
         random_sets_r = pickle.load(setFile)
         setFile.flush()
         setFile.close()
-        print('initial # of bands:', len(random_sets_r))
+        print('initial # of subsets in input file:', len(random_sets_r))
+        processedShapFiles = self._get_shap_files(shapPrefix, prune)
+        # if (prune == 'model'):
+        #     # assume that if .model files exist, trial will complete.  So, don't spoil the fun and rerun.
+        #     processedShapFiles = glob.glob(shapPrefix + '**/**/MODELS/*].model', recursive=True)
+        # else:
+        #     processedShapFiles = glob.glob(shapPrefix + '**/**/PERMUTATION_IMPORTANCE_VALUES/*.shap_values0to50', recursive=True)
+        # print('# of shap files already processed:', len(processedShapFiles))
 
         sets_to_process = []
         for subset in range(len(random_sets_r) - 1, -1, -1):
+            pruned = False
             if ((shapPrefix != None) and (len(shapPrefix) > 0)):
                 indexListIntStr = self.format_band_set(random_sets_r[subset])
-                shap_path = shapPrefix + "[[" + indexListIntStr + "]].shap_values0to50"
-                if (self.file_exists(shap_path)):
-                    print('band pruned:', subset, random_sets_r[subset])
-#                    del random_sets_r[subset]
-                    pruned = True
-                    print('current # of bands:', len(random_sets_r))
-                else:
-                    sets_to_process.append(random_sets_r[subset])
-            else:
+                for processedShap in range(0, len(processedShapFiles)):
+                    if (processedShapFiles[processedShap].find(indexListIntStr) > 0):
+                        print('band pruned:', subset, random_sets_r[subset])
+                        #                    del random_sets_r[subset]
+                        pruned = True
+                        print('current # of bands:', len(random_sets_r))
+            if (pruned == False):
                 sets_to_process.append(random_sets_r[subset])
+
+#         sets_to_process = []
+#         for subset in range(len(random_sets_r) - 1, -1, -1):
+#             if ((shapPrefix != None) and (len(shapPrefix) > 0)):
+#                 indexListIntStr = self.format_band_set(random_sets_r[subset])
+#                 shap_path = shapPrefix + "[[" + indexListIntStr + "]].shap_values0to50"
+#                 if (self.file_exists(shap_path)):
+#                     print('band pruned:', subset, random_sets_r[subset])
+# #                    del random_sets_r[subset]
+#                     pruned = True
+#                     print('current # of bands:', len(random_sets_r))
+#                 else:
+#                     sets_to_process.append(random_sets_r[subset])
+#             else:
+#                 sets_to_process.append(random_sets_r[subset])
 
             # TODO currently deleting and assume that processing completes.  Should make conditional on success
             del random_sets_r[subset]
@@ -517,21 +556,23 @@ class MpfWorkflow(object):
             if (len(sets_to_process) == mpfWorkflowConfig.numTrials):
                     break;
 
-        if (pruned == True):
-            self.logger.info('\nSaving pruned sets: ' + bandListFile)
-            setFile2 = open(bandListFile, "wb")
-            pickle.dump(random_sets_r, setFile2)
-            setFile2.flush()
-            setFile2.close()
-            print('bands remaining after pruning:', len(random_sets_r))
+        print('# of shap files to process in this run:', len(sets_to_process))
+
+        # if (pruned == True):
+        #     self.logger.info('\nSaving pruned sets: ' + bandListFile)
+        #     setFile2 = open(bandListFile, "wb")
+        #     pickle.dump(random_sets_r, setFile2)
+        #     setFile2.flush()
+        #     setFile2.close()
+        #     print('bands remaining after pruning:', len(random_sets_r))
         return sets_to_process
 
-    @synchronized
-    def get_band_sets(self, bandList, bandListFile, shapArchive, mpfWorkflowConfig):
+    # @synchronized
+    def get_band_sets(self, bandList, bandListFile, shapArchive, prune, mpfWorkflowConfig):
         random_sets_r = []
         if ((bandListFile != None) and (len(bandListFile) > 0)):
             # read random set list from file
-            random_sets_r = self.prune_band_sets(bandListFile, shapArchive, mpfWorkflowConfig)
+            random_sets_r = self.prune_band_sets(bandListFile, shapArchive, prune, mpfWorkflowConfig)
         elif ((bandList != None) and (len(bandList) > 0) and (str(bandList) == 'random')):
             #TODO get random sets
             random_sets_r = mpfWorkflowConfig.workflow.randomize()
