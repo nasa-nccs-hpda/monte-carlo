@@ -20,6 +20,8 @@ import tensorflow as tf
 from time import sleep
 import glob
 
+from pathlib import Path
+
 class MpfWorkflow(object):
 
     # ---------------------------------------------------------------------------
@@ -133,9 +135,6 @@ class MpfWorkflow(object):
 
         self.mpfConfig.model_path = os.path.join(self.mpfConfig.modelDir, self.mpfConfig.model_name +
                                                  '[' + str(self.mpfConfig.bandList)[:] + '].model')
-        # self.mpfConfig.fit_path = os.path.join(self.mpfConfig.modelDir, self.mpfConfig.model_name +
-        #                                          '[' + str(self.mpfConfig.bandList)[:] + '].model')
-#        if (not os.path.exists(self.mpfConfig.model_path)):
         if (not os.path.exists(self.mpfConfig.model_path)) or (not hasattr(self.mpfConfig, 'model_factory')):
 
             self.logger.info('\nCreating model: ' + self.mpfConfig.model_path)
@@ -195,7 +194,7 @@ class MpfWorkflow(object):
 
     def process_band_list(self, band_list, mpfWorkflowConfig):
         processed_band_list = None
-        sleep(5)
+#        sleep(5)
         try:
             if (len(band_list) < 2):
                 print('skipping 1-dimensional band list: ', str(band_list[0]))
@@ -366,18 +365,18 @@ class MpfWorkflow(object):
             self.mpfConfig.evaluation_path = os.path.join(self.mpfConfig.modelDir,
                                                           self.mpfConfig.model_name +
                                                           '[' + str(self.mpfConfig.bandList)[:] + '].test_results')
-            if (not os.path.exists(self.mpfConfig.evaluation_path)):
+ #           if (not os.path.exists(self.mpfConfig.evaluation_path)):
 
-                t2 = time.time()
-                total_time = t2 - t1
-                self.mpfConfig.test_results = model_factory.evaluate(model, test_generator)
+            t2 = time.time()
+            total_time = t2 - t1
+            self.mpfConfig.test_results = model_factory.evaluate(model, test_generator)
 
-                print(f'Finished evaluation successfully - test results: {self.mpfConfig.test_results}')
-                self.logger.info('\nSaving evaluation test results: ' + self.mpfConfig.evaluation_path)
-                pickle.dump(self.mpfConfig.test_results,
-                            open(self.mpfConfig.evaluation_path, "wb"))
+            print(f'Finished evaluation successfully - test results: {self.mpfConfig.test_results}')
+            self.logger.info('\nSaving evaluation test results: ' + self.mpfConfig.evaluation_path)
+            pickle.dump(self.mpfConfig.test_results,
+                        open(self.mpfConfig.evaluation_path, "wb"))
 
-                print("Total time for model_factory.evaluate(() processing is: " + str(total_time) + " seconds.")
+            print("Total time for model_factory.evaluate(() processing is: " + str(total_time) + " seconds.")
 
 
 
@@ -430,11 +429,14 @@ class MpfWorkflow(object):
     def run_trials(self):
 
         skipIt = False
-        if (len(self.mpfConfig.shapArchive) > 0):
+        if (len(self.mpfConfig.permutationImportanceDir) > 0):
             indexListIntStr = self.format_band_set(self.mpfConfig.bandList)
-            shap_path = self.mpfConfig.shapArchive + "[[" + indexListIntStr + "]].shap_values0to50"
-            if (self.file_exists(shap_path)):
-                skipIt = True
+            shap_path = os.path.join(self.mpfConfig.permutationImportanceDir, self.mpfConfig.model_name +
+                          '[[' + indexListIntStr + ']].shap_values0to50')
+#            shap_path = self.mpfConfig.permutationImportanceDir + "[[" + indexListIntStr + "]].shap_values0to50"
+            if (os.path.isfile(shap_path)):
+                if (os.path.getsize(shap_path) != 0):
+                    skipIt = True
 
         if (skipIt == False):
             model = self.mpfConfig.model
@@ -469,6 +471,8 @@ class MpfWorkflow(object):
         self.mpfConfig.cfgDir = os.path.join(outDir, expId + '/CONFIG')
         self.mpfConfig.bandDir = os.path.join(outDir, expId + '/BANDS')
         self.mpfConfig.permutationImportanceDir = os.path.join(outDir, expId + '/PERMUTATION_IMPORTANCE_VALUES')
+        if (not os.path.exists(self.mpfConfig.permutationImportanceDir)):
+            os.mkdir(self.mpfConfig.permutationImportanceDir)
         self.mpfConfig.finishedDir = os.path.join(outDir, expId + '/FINISHED')
         self.mpfConfig.merraDir = os.path.join(outDir, expId + '/RAW_MERRA')
         self.mpfConfig.trialsDir = os.path.join(outDir, expId + '/TRIALS')
@@ -512,16 +516,11 @@ class MpfWorkflow(object):
         setFile.close()
         print('initial # of subsets in input file:', len(random_sets_r))
         processedShapFiles = self._get_shap_files(shapPrefix, prune)
-        # if (prune == 'model'):
-        #     # assume that if .model files exist, trial will complete.  So, don't spoil the fun and rerun.
-        #     processedShapFiles = glob.glob(shapPrefix + '**/**/MODELS/*].model', recursive=True)
-        # else:
-        #     processedShapFiles = glob.glob(shapPrefix + '**/**/PERMUTATION_IMPORTANCE_VALUES/*.shap_values0to50', recursive=True)
-        # print('# of shap files already processed:', len(processedShapFiles))
 
         sets_to_process = []
         for subset in range(len(random_sets_r) - 1, -1, -1):
             pruned = False
+#            pathToTouch = Nonea
             if ((shapPrefix != None) and (len(shapPrefix) > 0)):
                 indexListIntStr = self.format_band_set(random_sets_r[subset])
                 for processedShap in range(0, len(processedShapFiles)):
@@ -532,21 +531,13 @@ class MpfWorkflow(object):
                         print('current # of bands:', len(random_sets_r))
             if (pruned == False):
                 sets_to_process.append(random_sets_r[subset])
-
-#         sets_to_process = []
-#         for subset in range(len(random_sets_r) - 1, -1, -1):
-#             if ((shapPrefix != None) and (len(shapPrefix) > 0)):
-#                 indexListIntStr = self.format_band_set(random_sets_r[subset])
-#                 shap_path = shapPrefix + "[[" + indexListIntStr + "]].shap_values0to50"
-#                 if (self.file_exists(shap_path)):
-#                     print('band pruned:', subset, random_sets_r[subset])
-# #                    del random_sets_r[subset]
-#                     pruned = True
-#                     print('current # of bands:', len(random_sets_r))
-#                 else:
-#                     sets_to_process.append(random_sets_r[subset])
-#             else:
-#                 sets_to_process.append(random_sets_r[subset])
+                # Create placeholder file to be updated with content later (i.e., touch)
+                indexListIntStr = self.format_band_set(random_sets_r[subset])
+                shap_path = \
+                    os.path.join(mpfWorkflowConfig.permutationImportanceDir, mpfWorkflowConfig.model_name +
+                             '[[' + indexListIntStr + ']].shap_values0to50')
+ #               print('Touch', shap_path)
+                Path(shap_path).touch()
 
             # TODO currently deleting and assume that processing completes.  Should make conditional on success
             del random_sets_r[subset]
@@ -557,14 +548,6 @@ class MpfWorkflow(object):
                     break;
 
         print('# of shap files to process in this run:', len(sets_to_process))
-
-        # if (pruned == True):
-        #     self.logger.info('\nSaving pruned sets: ' + bandListFile)
-        #     setFile2 = open(bandListFile, "wb")
-        #     pickle.dump(random_sets_r, setFile2)
-        #     setFile2.flush()
-        #     setFile2.close()
-        #     print('bands remaining after pruning:', len(random_sets_r))
         return sets_to_process
 
     # @synchronized
