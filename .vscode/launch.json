@@ -1,0 +1,111 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "terminal.integrated.env.windows": {
+        "PYTHONPATH": "/explore/nobackup/people/gtamkin/dev/AGB/monte-carlo/monte-carlo:${workspaceFolder}"
+    },
+    "configurations": [
+        
+        
+        {
+            "name": "mc-combinations_sets_20240508_collection-VI_batch_size-2_num_samples-210_bandLen-21",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--config",
+                "/panfs/ccds02/nobackup/people/gtamkin/dev/AGB/monte-carlo/monte-carlo/tests/exp_aggregate_hyperspectral_callbacks_noMinMax.json",
+                "-o",
+                "/explore/nobackup/projects/ilab/data/AGB/test/mcruns/output/VI/combinations_sets_20240508_collection-VI_batch_size-2_num_samples-210_bandLen-21",
+                "--bandListFile",
+                "/explore/nobackup/projects/ilab/data/AGB/test/mcruns/input/random_sets/combinations_sets_20240326_collection-VI_batch_size-2_num_samples-210_bandLen-21.pkl",
+                "-hf",
+                "/explore/nobackup/projects/ilab/data/AGB/test/beta_pmm/MLBS_2018_541567.6_4136443.0_542567.6_4137443.0/MLBS_2018_hyperspectral_indices.tif",
+                "-t",
+                "2",
+                "--prune",
+                "model"
+            ]
+        },
+        {
+            "name": "mc-combinations_sets_LIME_collection-VI_batch_size-2_num_samples-1_bandLen-21",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--config",
+                "/panfs/ccds02/nobackup/people/gtamkin/dev/AGB/monte-carlo/monte-carlo/tests/exp_aggregate_hyperspectral_callbacks_noMinMax.json",
+                "-o",
+                "/explore/nobackup/projects/ilab/data/AGB/test/mcruns/output/VI/combinations_sets_20240415_LIME_collection-VI_batch_size-2_num_samples-1_bandLen-21",
+                // "/explore/nobackup/projects/ilab/data/AGB/test/mcruns/output/VI/combinations_sets_20240406_DeepExplainer_collection-VI_batch_size-2_num_samples-1_bandLen-21",
+                "--bandListFile",
+                "/explore/nobackup/projects/ilab/data/AGB/test/mcruns/input/random_sets/combinations_sets_20240326_collection-VI_batch_size-2_num_samples-210_bandLen-21.pkl",
+                "-hf",
+                "/explore/nobackup/projects/ilab/data/AGB/test/beta_pmm/MLBS_2018_541567.6_4136443.0_542567.6_4137443.0/MLBS_2018_hyperspectral_indices.tif",
+                "-t",
+                "1",
+                "--clean",
+                "--explain",
+                "lime",
+                "--prune",
+                "model"
+            ]
+        },
+        {
+            "name": "mc-combinations_sets_collection-VI_batch_size-2_num_samples-1_bandLen-21",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--config",
+                "/panfs/ccds02/nobackup/people/gtamkin/dev/AGB/monte-carlo/monte-carlo/tests/exp_aggregate_hyperspectral_callbacks_noMinMax.json",
+                "-o",
+                "/explore/nobackup/projects/ilab/data/AGB/test/mcruns/output/VI/combinations_sets_20240415_collection-VI_batch_size-2_num_samples-1_bandLen-21",
+                // "/explore/nobackup/projects/ilab/data/AGB/test/mcruns/output/VI/combinations_sets_20240406_DeepExplainer_collection-VI_batch_size-2_num_samples-1_bandLen-21",
+                "--bandListFile",
+                "/explore/nobackup/projects/ilab/data/AGB/test/mcruns/input/random_sets/combinations_sets_20240326_collection-VI_batch_size-2_num_samples-210_bandLen-21.pkl",
+                "-hf",
+                "/explore/nobackup/projects/ilab/data/AGB/test/beta_pmm/MLBS_2018_541567.6_4136443.0_542567.6_4137443.0/MLBS_2018_hyperspectral_indices.tif",
+                "-t",
+                "1",
+                "--clean",
+                "--prune",
+                "model"
+            ]
+        },
+        {
+            "name": "mc-combinations_sets_20240402_collection-VI_batch_size-2_num_samples-210_bandLen-21_epochs-10",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "--config",
+                "/panfs/ccds02/nobackup/people/gtamkin/dev/AGB/monte-carlo/monte-carlo/tests/exp_aggregate_hyperspectral_10epochs_noMinMax.json",
+                "-o",
+                "/explore/nobackup/projects/ilab/data/AGB/test/mcruns/output/VI/combinations_sets_20240329_collection-VI_batch_size-2_num_samples-210_bandLen-21_epochs-10",
+                "--bandListFile",
+                "/explore/nobackup/projects/ilab/data/AGB/test/mcruns/input/random_sets/combinations_sets_20240326_collection-VI_batch_size-2_num_samples-210_bandLen-21.pkl",
+                "-hf",
+                "/explore/nobackup/projects/ilab/data/AGB/test/beta_pmm/MLBS_2018_541567.6_4136443.0_542567.6_4137443.0/MLBS_2018_hyperspectral_indices.tif",
+                "-t",
+                "2",
+                "--prune",
+                "model"
+            ]
+        },
+       {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

@@ -70,6 +70,12 @@ def main():
                         required = False,
                         type=str,
                         help='prune subsets remaining to process based on existing shap files or model files.  Run with shap option to cleean up at the end.')
+ 
+    parser.add_argument('--explain',
+                        default='shap',
+                        required = False,
+                        type=str,
+                        help='way to explain the output of the machine learning model.')
 
     parser.add_argument('-dp',
                         help='root data path')
@@ -112,7 +118,7 @@ def main():
 
     # Run the process.
     mpfWorkflowConfig = (ConfigureMpfRun(args.config, args.bandList, args.bandListFile, args.shapArchive,
-                                         args.prune, args.dp, args.hf, args.tfa, args.tfb, args.e,
+                                         args.prune, args.explain, args.dp, args.hf, args.tfa, args.tfb, args.e,
                                          args.o, args.cleanbool, args.archivebool, args.p, args.t)).config
     mpfWorkflowConfig.workflow.set_paths(mpfWorkflowConfig.outDir,
                    mpfWorkflowConfig.mlflow_config['EXPERIMENT_ID'])

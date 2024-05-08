@@ -1,0 +1,108 @@
+{
+    "mlflow": {
+      "TRACKING_URI": "/explore/nobackup/projects/ilab/data/AGB/test/mlruns",
+      "EXPERIMENT_NAME": "exp_aggregate_hyperspectral"
+    },
+    "gpu": {
+      "GPUS": "1,3,4"
+    },
+    "data_generator": {
+      "branch_inputs": [
+        {
+          "branch_files":
+          [{"mlbs_year_filepath": "MLBS_2018_541567.6_4136443.0_542567.6_4137443.0/MLBS_2018_Reflectance_reflectance_warp.tif",
+          "bands": [1, 237]}]
+        
+        }
+      ],
+      "data_path": "/explore/nobackup/projects/ilab/data/AGB/test/beta_pmm/",
+      "dataset_width": 1000,
+      "dataset_height": 1000,
+      "patch_width": 1,
+      "patch_height": 1,
+      "batch_size": 1000,
+      "full_hyperspectral": false,
+      "num_bands": 447,
+      "truth_file_a": "MLBS_2018_541567.6_4136443.0_542567.6_4137443.0/MLBS_2018_FSDGtif_CHM_warp.tif",
+      "truth_file_b": "MLBS_2021_541567.6_4136443.0_542567.6_4137443.0/MLBS_2021_FSDGtif_CHM_warp.tif",
+      "year_a": 2018,
+      "year_b": 2021,
+      "height_inc": true,
+      "randomize_pixels": true,
+      "scale_data_method": "None",
+      "split_tuple": [80,10,10],
+      "bins": [-0.5, -0.1, 0.1, 0.5]
+    },
+    "models": [
+      {
+        "model_name": "MLP_SGD_7_layers_1024_units_MAE_50_epochs_callbacks",
+        "model_type": "Sequential",
+        "model_description": "Testing the full hyperspectral image. Trying this one out with SGD at a learning rate of 0.3, and a loss of MAE to see if that helps",
+        "layers": [
+          {
+            "type": "Dense",
+            "units": 447,
+            "return_sequences": true,
+            "activation": "gelu",
+            "kernel_initializer": "he_normal",
+            "use_bias": true
+          },
+          {
+            "type": "Dense",
+            "units": 1024,
+            "return_sequences": true,
+            "activation": "gelu",
+            "kernel_initializer": "he_normal",
+            "use_bias": true
+          },
+          {
+            "type": "Dense",
+            "units": 512,
+            "return_sequences": true,
+            "activation": "gelu",
+            "kernel_initializer": "he_normal",
+            "use_bias": true
+          },
+          {
+            "type": "Dense",
+            "units": 256,
+            "return_sequences": true,
+            "activation": "gelu",
+            "kernel_initializer": "he_normal",
+            "use_bias": true
+          },
+          {
+            "type": "Dense",
+            "units": 128,
+            "return_sequences": true,
+            "activation": "gelu",
+            "kernel_initializer": "he_normal",
+            "use_bias": true
+          },
+          {
+            "type": "Dense",
+            "units": 64,
+            "return_sequences": true,
+            "activation": "gelu",
+            "kernel_initializer": "he_normal",
+            "use_bias": true
+          },
+          {
+            "type": "Dense",
+            "units": 5,
+            "activation": "softmax"
+          }
+        ],
+        "compile_options": {
+          "optimizer": {
+            "name": "sgd",
+            "learning_rate": 0.3
+          },
+          "loss": "mean_absolute_error"
+        },
+        "training_options": {
+          "epochs": 50
+        }
+      }
+    ]
+  }

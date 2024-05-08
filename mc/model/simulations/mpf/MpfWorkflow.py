@@ -22,6 +22,9 @@ import glob
 
 from pathlib import Path
 
+import pandas as pd            
+import lime
+
 class MpfWorkflow(object):
 
     # ---------------------------------------------------------------------------
@@ -426,6 +429,81 @@ class MpfWorkflow(object):
         return self.mpfConfig.explainer, self.mpfConfig.shap_values0to50
 
 
+    def _get_shap_values_lime(self, model, test_generator, X):
+
+        nsamples = 150
+        nfeatures = 50
+
+         #TODO figure out proper value for nsamples
+        train_sample_size = 800000 # (shape: 8, 100000 = 800000)
+        test_sample_size = 1000 # (shape: 2, 100000 = 200000)
+        # background_sample_size = 500
+        # shap_sample_size = 1000
+        background_sample_size = nfeatures
+        shap_sample_size = nsamples
+ 
+        train_generator = self.mpfConfig.train_generator
+        df = pd.DataFrame(data=train_generator.file_x_stack)
+        dft = df.transpose()
+        self.mpfConfig.train_X = dft
+        train_X_sample_size = len(self.mpfConfig.train_X)
+        background = shap.sample(self.mpfConfig.train_X, background_sample_size) # (shape: 150,2)
+
+        t0 = time.time()
+        # Syntas: df.iloc[row_start:row_end, column_start:column_end]
+#        self.mpfConfig.explainer = shap.KernelExplainer(model.predict, X)
+#        self.mpfConfig.explainer = shap.KernelExplainer(model.predict, X.iloc[:nfeatures, :])
+#        self.mpfConfig.explainer = shap.KernelExplainer(model.predict, background)
+        self.mpfConfig.explainer = shap.explainers.other.LimeTabular(model, background)
+       
+        # background = self.mpfConfig.train_X[np.random.choice(self.mpfConfig.train_X.shape[0], background_sample_size, replace=False)]
+        # self.mpfConfig.explainer = shap.DeepExplainer(model, background)
+        
+        t1 = time.time()
+        total_time = t1 - t0
+        print("\nTotal time for shap.DeepExplainer((model.predict, X.iloc[:",str(background_sample_size), ":]) processing is: "
+              + str(total_time) + " seconds.")
+        # print("\nTotal time for shap.KernelExplainer((model.predict, X.iloc[:",str(background_sample_size), ":]) processing is: "
+        #       + str(total_time) + " seconds.")
+
+        #TODO figure out proper value for nsamples
+        self.mpfConfig.shap_values0to50 = self.mpfConfig.explainer.shap_values(X.iloc[0:test_sample_size, :], nsamples = shap_sample_size)
+#        self.mpfConfig.shap_values0to50 = self.mpfConfig.explainer.shap_values(X.iloc[0:50, :], nsamples=500)
+#        self.mpfConfig.shap_values0to50 = self.mpfConfig.explainer.shap_values(X.iloc[0:nfeatures, :], nsamples=nsamples)
+#        self.mpfConfig.shap_values0to50 = self.mpfConfig.explainer.shap_values(X)
+        t2 = time.time()
+        total_time = t2 - t1
+        print("\nTotal time for explainer.shap_values(X.iloc[0:",str(len(X)),", :], nsamples=",str(shap_sample_size),") processing is: "
+              + str(total_time) + " seconds.")
+        # print("\nTotal time for explainer.shap_values(X.iloc[0:",str(nfeatures),", :], nsamples=",str(nsamples),") processing is: "
+        #       + str(total_time) + " seconds.")
+
+        # save shap values
+        if not os.path.exists(self.mpfConfig.permutationImportanceDir):
+            os.mkdir(self.mpfConfig.permutationImportanceDir)
+
+        self.mpfConfig.shap_path = \
+            os.path.join(self.mpfConfig.permutationImportanceDir, self.mpfConfig.model_name +
+                         '[' + str(self.mpfConfig.bandList)[:] + '].shap_values0to50')
+
+        self.mpfConfig.explainer_path = \
+            os.path.join(self.mpfConfig.permutationImportanceDir, self.mpfConfig.model_name +
+                         '[' + str(self.mpfConfig.bandList)[:] + '].explainer_values0to50')
+
+        # self.logger.info('\nSaving explainer: ' + self.mpfConfig.explainer_path)
+        # pickle.dump(self.mpfConfig.explainer,
+        #             open(self.mpfConfig.explainer_path, "wb"))
+
+        self.logger.info('\nSaving shap values: ' + self.mpfConfig.shap_path)
+        pickle.dump(self.mpfConfig.shap_values0to50,
+                open(self.mpfConfig.shap_path, "wb"))
+
+        t3 = time.time()
+        total_time = t3 - t0
+        print("\nTotal time for _get_shap_values() processing is: " + str(total_time) + " seconds.")
+
+        return self.mpfConfig.explainer, self.mpfConfig.shap_values0to50
+
     def run_trials(self):
 
         skipIt = False
@@ -443,13 +521,18 @@ class MpfWorkflow(object):
             model_factory = self.mpfConfig.model_factory
             test_generator = self.mpfConfig.test_generator
 
-            import pandas as pd
             df = pd.DataFrame(data=test_generator.file_x_stack)
             dft = df.transpose()
             self.mpfConfig.X = dft
 
-            explainer, shap_values = self._get_shap_values(model, test_generator, self.mpfConfig.X)
-            print("Finished shap successfully")
+            if (self.mpfConfig.explain == 'shap'):
+                explainer, shap_values = self._get_shap_values(model, test_generator, self.mpfConfig.X)
+                print("Finished shap successfully")
+            elif (self.mpfConfig.explain == 'lime'):
+                explainer, shap_values = self._get_shap_values_lime(model, test_generator, self.mpfConfig.X)
+                print("Finished lime successfully")
+            else:
+                raise RuntimeError('A valid explainer is required.')
 
         return self.mpfConfig.explainer, self.mpfConfig.shap_values0to50
 

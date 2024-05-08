@@ -1,0 +1,15 @@
+
+cd /panfs/ccds02/home/gtamkin/dev/AGB/monte-carlo/monte-carlo
+/panfs/ccds02/app/modules/anaconda/platform/x86_64/rhel/8.6/3-2022.05/bin/conda activate ilab-tensorflow
+export PYTHONPATH=/explore/nobackup/people/gtamkin/dev/AGB/mpf-model-factories/MultiPathFusion:/explore/nobackup/people/gtamkin/dev/AGB/monte-carlo/monte-carlo
+echo /app/jupyter/ilab/tensorflow-kernel/bin/python3.8 /panfs/ccds02/nobackup/people/gtamkin/dev/AGB/monte-carlo/monte-carlo/mc/view/MpfSimulationMultiprocess.py \
+    --config ./tests/exp_aggregate_hyperspectral_callbacks_noMinMax.json -o $1 \
+   --bandListFile  $2 \
+   -hf /explore/nobackup/projects/ilab/data/AGB/test/mcruns/input/bands/MLBS_2018_Reflectance_reflectance_warp_scaled.tif  \
+   -t $3 --prune $4
+echo 
+/app/jupyter/ilab/tensorflow-kernel/bin/python3.8 /panfs/ccds02/nobackup/people/gtamkin/dev/AGB/monte-carlo/monte-carlo/mc/view/MpfSimulationMultiprocess.py \
+    --config ./tests/exp_aggregate_hyperspectral_callbacks_noMinMax.json -o $1 \
+   --bandListFile  $2 \
+   -hf /explore/nobackup/projects/ilab/data/AGB/test/mcruns/input/bands/MLBS_2018_Reflectance_reflectance_warp_scaled.tif \
+   -t $3 --prune $4
